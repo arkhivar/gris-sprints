@@ -1,1 +1,1 @@
-# gris-sprints
+# grist-sprints
