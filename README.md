@@ -1,66 +1,38 @@
-# grist-widget-grouped-view
+# grist-sprints — Grist grouped-view widget
 
-> Grist custom widget — collapsible grouped view. Groups records by any column with fold/unfold, sort by name or count, stable color per group, and persisted options via `grist.setOption()`.
+> Grist custom widget — collapsible grouped view, Airtable/Notion-style. Groups records by any column with fold/unfold, group sorting, per-group colors, aggregate chips in group headers, and persisted options via `grist.setOption()`.
 
----
-
-## 🇫🇷 Français
-
-### Présentation
-
-Widget personnalisé pour [Grist](https://www.getgrist.com/) qui affiche les enregistrements d'une table regroupés par valeur de colonne, à la manière de Notion ou Airtable.
-
-### Fonctionnalités
-
-- **Grouper par n'importe quelle colonne** — menu déroulant dans la barre d'outils
-- **Plier / déplier** chaque groupe en cliquant sur son en-tête
-- **Tout plier / Tout déplier** en un clic
-- **Tri des groupes** : alphabétique A→Z ou Z→A, par nombre d'enregistrements croissant ou décroissant
-- **Couleur stable** par groupe (palette tournante)
-- **Valeurs nulles** regroupées en *(vide)* et triées en dernier
-- **Formatage des cellules** : booléens ✓/✗, nombres localisés `fr-FR`, listes
-- **Options persistées** via `grist.setOption()` (colonne et tri retenus après rechargement)
-
-### Installation
-
-1. Dans ta table Grist, ajouter une vue → **Widget personnalisé**
-2. Dans le panneau de droite, renseigner l'URL du fichier hébergé (voir ci-dessous)
-3. Sélectionner l'accès **"Lire la table"**
-4. Choisir la colonne de regroupement dans la barre d'outils du widget
-
-### Hébergement
-
-Le widget est un fichier HTML autonome, sans dépendance npm ni étape de build.  
-Options d'hébergement :
-
-- **GitHub Pages** : activer Pages sur ce dépôt, utiliser l'URL `https://<user>.github.io/grist-widget-grouped-view/widget_groupes.html`
-- **Tout serveur HTTP statique** (Scalingo, Netlify, serveur WebDAV public…)
+Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacoste/grist-widget-grouped-view) with added **aggregates in group headers** and full **EN/FR localization**.
 
 ---
 
-## 🇬🇧 English
-
-### Overview
-
-A Grist custom widget that displays table records grouped by any column value, similar to Notion or Airtable grouped views.
-
-### Features
+## Features
 
 - **Group by any column** — dropdown selector in the toolbar
-- **Fold / unfold** each group by clicking its header
-- **Expand all / Collapse all** in one click
-- **Group sort** : alphabetical A→Z or Z→A, by record count ascending or descending
-- **Stable color** per group value (rotating palette)
-- **Null values** collected in a *(empty)* group, sorted last
-- **Cell formatting** : booleans ✓/✗, localised numbers, arrays
-- **Persisted options** via `grist.setOption()` (column and sort order survive page reload)
+- **Fold / unfold** each group by clicking its header; **expand all / collapse all** in one click
+- **Group sort**: alphabetical A→Z or Z→A, by record count ascending or descending
 - **Aggregates in group headers** — configurable count / sum / avg / min / max chips per group (see below)
+- **Stable color per group** (rotating palette) with per-group color picker
+- **Null values** collected in an *(empty)* group, sorted last
+- **Cell formatting**: booleans ✓/✗ (several display styles), localized numbers, arrays
+- **Per-group scrolling** with adjustable max height
+- **Persisted options** via `grist.setOption()` — grouping column, sort order, colors, and aggregate rules all survive page reload
 - **EN / FR localization** — interface language follows the browser locale (English by default)
 
-### Aggregates in group headers
+## Setup
 
-Each group header can show aggregate chips computed from the records of that
-group, next to the record count (e.g. `Σ Price 12,480`).
+1. In your Grist document, add a widget → **Custom**
+2. Set the custom URL to:
+   ```
+   https://arkhivar.github.io/grist-sprints/widget_groupes.html
+   ```
+3. Select access level **Read table**
+4. Pick a grouping column in the widget toolbar
+
+## Aggregates in group headers
+
+Each group header can show aggregate chips computed from that group's records,
+next to the record count (e.g. `Σ Price 12,480`).
 
 1. Open the widget settings panel (⚙ button in the toolbar).
 2. In the **Aggregates** section, pick a **function** and a **column**, then click **+ Add**. Repeat for as many rules as you need; remove a rule with its ✕ button.
@@ -75,41 +47,26 @@ Available functions:
 | Min | `↓` | Numeric / Int only |
 | Max | `↑` | Numeric / Int only |
 
-- Null / empty values are skipped; averages are rounded to at most 2 decimals and values are formatted with `toLocaleString` in the active locale.
-- Rules are persisted via `grist.setOption('aggregates', …)` and restored on reload, and are recomputed on every data update.
+- Null / empty values are skipped; averages are rounded to at most 2 decimals; values are formatted with `toLocaleString` in the active locale.
+- Rules are persisted via `grist.setOption('aggregates', …)`, restored on reload, and recomputed on every data update.
 
-### Localization
+## Hosting
 
-The interface is automatically displayed in French when the browser language
-starts with `fr`, and in English otherwise (default). All UI strings live in
-the `I18N = { en: …, fr: … }` dictionary at the top of the script in
-`widget_groupes.html`.
+The widget is a single self-contained HTML file — no npm, no build step.
 
-### Setup
+- **GitHub Pages**: enabled on this repo (source: `main` branch, root). Widget URL: `https://arkhivar.github.io/grist-sprints/widget_groupes.html`
+- **Any static HTTP server** works too (Netlify, Scalingo, a public WebDAV share…)
 
-1. In your Grist table, add a view → **Custom Widget**
-2. In the right panel, enter the hosted file URL (see below)
-3. Select access level **"Read table"**
-4. Pick a grouping column in the widget toolbar
+## Files
 
-### Hosting
-
-The widget is a single self-contained HTML file — no npm, no build step.  
-Hosting options:
-
-- **GitHub Pages** : enable Pages on this repo, use `https://<user>.github.io/grist-widget-grouped-view/widget_groupes.html`
-- **Any static HTTP server** (Scalingo, Netlify, public WebDAV…)
-
----
-
-## Fichiers / Files
-
-| Fichier | Description |
+| File | Description |
 |---|---|
-| `widget_groupes.html` | Widget principal / Main widget file |
+| `widget_groupes.html` | Main (and only) widget file |
 
----
+## Credits
 
-## Licence
+Original widget by [Maxime Lacoste](https://github.com/maximelacoste/grist-widget-grouped-view), shared on the [Grist community forum](https://community.getgrist.com/t/collapsible-grouped-view-based-on-column-values-custom-widget/13789).
+
+## License
 
 MIT
