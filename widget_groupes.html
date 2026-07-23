@@ -498,6 +498,9 @@
       aggColLabel:     'Colonne de l’agrégat',
       aggRemove:       'Supprimer l’agrégat',
       aggNoRules:      'Aucun agrégat configuré.',
+      byDay:           'par jour',
+      byMonth:         'par mois',
+      byYear:          'par année',
       boolTrue:  ['✓ vrai',  'Oui',  'True',  'vrai', '1'],
       boolFalse: ['✗ faux',  'Non',  'False', 'faux', '0'],
       boolLabels: ['✓ / ✗', 'Oui / Non', 'True / False', '● badge', '1 / 0'],
@@ -548,12 +551,22 @@
       aggColLabel:     'Aggregate column',
       aggRemove:       'Remove aggregate',
       aggNoRules:      'No aggregate configured.',
+      byDay:           'by day',
+      byMonth:         'by month',
+      byYear:          'by year',
       boolTrue:  ['✓ true',  'Yes',   'True',  'true',  '1'],
       boolFalse: ['✗ false', 'No',    'False', 'false', '0'],
       boolLabels: ['✓ / ✗', 'Yes / No', 'True / False', '● badge', '1 / 0'],
     }
   };
   const T = I18N[LANG];
+  const LOCALE = LANG === 'fr' ? 'fr-FR' : 'en-US';
+
+  // ── Dates : Grist transmet Date/DateTime en secondes epoch (UTC) ──
+  const DATE_EPOCH_MIN = 315532800;    // 1980-01-01T00:00:00Z
+  const DATE_EPOCH_MAX = 4102444800;   // 2100-01-01T00:00:00Z
+  const DATE_GRANULARITIES = ['day', 'month', 'year'];
+  const GRAN_I18N_KEY = { day: 'byDay', month: 'byMonth', year: 'byYear' };
 
   // ── 2. Constantes (utilisent T) ──────────────────────────
   const DEFAULT_PALETTE = [
@@ -601,6 +614,7 @@
   let aggregates = [];
   let boolFmtKey = 'check';
   let maxGroupH  = 200;
+  let dateLikeCache = new Map();   // col → bool, invalidé à chaque onRecords
 
   // ── 4. Refs DOM ───────────────────────────────────────────
   const groupSelect   = document.getElementById('group-select');
@@ -658,7 +672,8 @@
 
   // ── 6. Utilitaires ────────────────────────────────────────
   function hasBoolCol() {
-    return allColumns.filter(c => c !== groupBy)
+    const groupCol = parseGroupBy(groupBy).col;
+    return allColumns.filter(c => c !== groupCol)
       .some(c => allRecords.some(r => typeof r[c] === 'boolean'));
   }
 
@@ -683,6 +698,51 @@
     return String(s)
       .replace(/&/g,'&amp;').replace(/</g,'&lt;')
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── 6b. Dates : détection, encodage, bucketing ─────────────
+  // Une colonne est « date-like » si elle a ≥ 1 valeur non vide et que
+  // toutes ses valeurs non vides sont des nombres dans la plage epoch
+  // [1980-01-01, 2100-01-01] UTC (Grist envoie Date/DateTime en secondes).
+  function isDateLikeColumn(col) {
+    if (dateLikeCache.has(col)) return dateLikeCache.get(col);
+    let has = false;
+    for (const r of allRecords) {
+      const v = r[col];
+      if (v == null || v === '') continue;
+      if (typeof v !== 'number' || v < DATE_EPOCH_MIN || v > DATE_EPOCH_MAX) {
+        dateLikeCache.set(col, false);
+        return false;
+      }
+      has = true;
+    }
+    dateLikeCache.set(col, has);
+    return has;
+  }
+
+  // Décodage de la sélection : "col::day|month|year" ou simple "col".
+  function parseGroupBy(val) {
+    const m = /^(.*)::(day|month|year)$/.exec(val || '');
+    return m ? { col: m[1], granularity: m[2] }
+             : { col: val, granularity: null };
+  }
+
+  // Début de bucket UTC en millisecondes (jour / mois / année).
+  function bucketStartMs(epochSec, granularity) {
+    const d = new Date(epochSec * 1000);
+    const y = d.getUTCFullYear(), m = d.getUTCMonth(), day = d.getUTCDate();
+    if (granularity === 'year')  return Date.UTC(y, 0, 1);
+    if (granularity === 'month') return Date.UTC(y, m, 1);
+    return Date.UTC(y, m, day);
+  }
+
+  // Libellé localisé du bucket (toujours en UTC).
+  function bucketLabel(ms, granularity) {
+    const d = new Date(ms);
+    if (granularity === 'year') return String(d.getUTCFullYear());
+    if (granularity === 'month')
+      return d.toLocaleDateString(LOCALE, { month: 'long', year: 'numeric', timeZone: 'UTC' });
+    return d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
   }
 
   // ── 7. Panneau de réglages — bouton ─────────────────────────
@@ -967,6 +1027,7 @@
 
   grist.onRecords((records) => {
     allRecords = records || [];
+    dateLikeCache = new Map();
     if (allRecords.length > 0) {
       allColumns = Object.keys(allRecords[0])
         .filter(k => k !== 'id' && k !== 'manualSort');
@@ -988,9 +1049,19 @@
       const opt = document.createElement('option');
       opt.value = col; opt.textContent = col;
       groupSelect.appendChild(opt);
+      // Colonnes date-like : granularités jour / mois / année en plus
+      if (isDateLikeColumn(col)) {
+        DATE_GRANULARITIES.forEach(g => {
+          const o = document.createElement('option');
+          o.value = `${col}::${g}`;
+          o.textContent = `${col} — ${T[GRAN_I18N_KEY[g]]}`;
+          groupSelect.appendChild(o);
+        });
+      }
     });
     const target = groupBy || prev;
-    if (target && allColumns.includes(target)) groupSelect.value = target;
+    const values = Array.from(groupSelect.options).map(o => o.value);
+    if (target && values.includes(target)) groupSelect.value = target;
   }
 
   groupSelect.addEventListener('change', () => {
@@ -1026,11 +1097,24 @@
   // ── 13. Groupement ────────────────────────────────────────
   function getGroups() {
     if (!groupBy) return [];
+    const { col, granularity } = parseGroupBy(groupBy);
+    // Granularité active seulement si la colonne est toujours date-like
+    const dateMode = !!granularity && allColumns.includes(col) && isDateLikeColumn(col);
     const map = new Map();
     allRecords.forEach(rec => {
-      const raw = rec[groupBy];
-      const key = (raw == null || raw === '') ? '\x00__empty__' : String(raw);
-      if (!map.has(key)) map.set(key, { key, label: raw, records: [] });
+      const raw = rec[col];
+      let key, label, sortKey;
+      if (raw == null || raw === '') {
+        key = '\x00__empty__'; label = raw; sortKey = null;
+      } else if (dateMode) {
+        const ms = bucketStartMs(raw, granularity);
+        key     = String(ms);                 // la clé porte l'epoch du bucket
+        label   = bucketLabel(ms, granularity);
+        sortKey = ms;
+      } else {
+        key = String(raw); label = raw; sortKey = null;
+      }
+      if (!map.has(key)) map.set(key, { key, label, sortKey, records: [] });
       map.get(key).records.push(rec);
     });
     const groups = Array.from(map.values());
@@ -1040,8 +1124,13 @@
     groups.sort((a, b) => {
       if (a.key === '\x00__empty__') return  1;
       if (b.key === '\x00__empty__') return -1;
-      if (sortMode === 'alpha-asc')  return String(a.label).localeCompare(String(b.label), 'fr');
-      if (sortMode === 'alpha-desc') return String(b.label).localeCompare(String(a.label), 'fr');
+      // Tri chronologique (epoch du bucket) quand le groupement est par date
+      if (sortMode === 'alpha-asc')  return dateMode
+        ? a.sortKey - b.sortKey
+        : String(a.label).localeCompare(String(b.label), 'fr');
+      if (sortMode === 'alpha-desc') return dateMode
+        ? b.sortKey - a.sortKey
+        : String(b.label).localeCompare(String(a.label), 'fr');
       if (sortMode === 'count-desc') return b.records.length - a.records.length;
       if (sortMode === 'count-asc')  return a.records.length - b.records.length;
       return 0;
@@ -1067,7 +1156,8 @@
 
     emptyState.style.display = 'none';
     const groups      = getGroups();
-    const displayCols = allColumns.filter(c => c !== groupBy);
+    const groupCol    = parseGroupBy(groupBy).col;
+    const displayCols = allColumns.filter(c => c !== groupCol);
 
     statsbar.classList.add('visible');
     statGroups.textContent  = groups.length;
@@ -1139,7 +1229,7 @@
       `<th scope="col" title="${esc(c)}">${esc(c)}</th>`
     ).join('');
     const tbody = records.map(rec =>
-      `<tr>${cols.map(c => `<td>${renderCell(rec[c])}</td>`).join('')}</tr>`
+      `<tr>${cols.map(c => `<td>${renderCell(rec[c], c)}</td>`).join('')}</tr>`
     ).join('');
     return `<div class="scroll-inner"><table class="rec-table">
       <caption>${T.groupCaption} ${esc(groupLabel)}</caption>
@@ -1148,7 +1238,7 @@
     </table></div>`;
   }
 
-  function renderCell(val) {
+  function renderCell(val, col) {
     if (val == null || val === '')
       return `<span class="cell-null" aria-label="${T.cellEmpty}">—</span>`;
     if (val === true || val === false) {
@@ -1157,7 +1247,12 @@
     }
     if (typeof val === 'number') {
       const isYearLike = Number.isInteger(val) && val >= 1000 && val <= 9999;
-      return `<span class="cell-num">${isYearLike ? val : val.toLocaleString(LANG === 'fr' ? 'fr-FR' : 'en-US')}</span>`;
+      if (isYearLike) return `<span class="cell-num">${val}</span>`;
+      // Entier aligné sur le jour (minuit UTC) dans une colonne date-like
+      // → affichage YYYY-MM-DD plutôt qu'un epoch brut.
+      if (col && Number.isInteger(val) && val % 86400 === 0 && isDateLikeColumn(col))
+        return `<span class="cell-num">${new Date(val * 1000).toISOString().slice(0, 10)}</span>`;
+      return `<span class="cell-num">${val.toLocaleString(LOCALE)}</span>`;
     }
     if (Array.isArray(val)) return esc(val.join(', '));
     return esc(String(val));

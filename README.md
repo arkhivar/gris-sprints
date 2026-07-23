@@ -9,6 +9,7 @@ Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacos
 ## Features
 
 - **Group by any column** — dropdown selector in the toolbar
+- **Date-aware grouping** — Date/DateTime columns can be grouped **by day, month or year** (UTC-based), with chronological sorting (see below)
 - **Fold / unfold** each group by clicking its header; **expand all / collapse all** in one click
 - **Group sort**: alphabetical A→Z or Z→A, by record count ascending or descending
 - **Aggregates in group headers** — configurable count / sum / avg / min / max chips per group (see below)
@@ -49,6 +50,31 @@ Available functions:
 
 - Null / empty values are skipped; averages are rounded to at most 2 decimals; values are formatted with `toLocaleString` in the active locale.
 - Rules are persisted via `grist.setOption('aggregates', …)`, restored on reload, and recomputed on every data update.
+
+## Date-aware grouping
+
+Grist delivers **Date** and **DateTime** column values to custom widgets as Unix
+epoch seconds (UTC). When a column's non-empty values are all numbers in the
+plausible epoch range (1980-01-01 → 2100-01-01 UTC), the widget treats it as
+date-like and the **Group by** dropdown offers three extra granularities in
+addition to the plain exact-value option:
+
+- `Column — by day` → one group per UTC calendar day (label e.g. *7 Apr 2025*)
+- `Column — by month` → one group per UTC month (label e.g. *April 2025*)
+- `Column — by year` → one group per UTC year (label e.g. *2025*)
+
+Details:
+
+- **Bucketing is UTC-based** — day/month/year boundaries are computed with
+  `Date.UTC`, so groups never shift with the viewer's local timezone.
+- With a date granularity active, **A→Z / Z→A sort chronologically** by bucket
+  start (not by label string); count sorts are unchanged and the *(empty)*
+  group stays last.
+- The selection is persisted as `Column::day|month|year` via
+  `grist.setOption('groupBy', …)` and restored on reload; plain column names
+  (no suffix) keep working exactly as before.
+- Day-aligned integer values (midnight UTC) in date-like columns render as
+  `YYYY-MM-DD` in table cells instead of raw epoch numbers.
 
 ## Hosting
 
