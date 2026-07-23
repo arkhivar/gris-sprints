@@ -472,6 +472,8 @@
       emptySub:        'Choisis une colonne dans la barre ci-dessus<br>pour grouper les enregistrements.',
       emptyTitleNoRec: 'Aucun enregistrement',
       emptySubNoRec:   'La table sélectionnée ne contient aucun enregistrement.',
+      emptyNoDataTitle: 'Aucun enregistrement pour lire les colonnes',
+      emptyNoDataSub:   'La table ou le filtre actuel ne renvoie aucune ligne.<br>Ouvre une vue non filtrée ou choisis une autre ligne liée, puis choisis une colonne de groupement.',
       groups:          'groupes',
       records:         'enregistrements',
       record:          'enregistrement',
@@ -525,6 +527,8 @@
       emptySub:        'Choose a column in the toolbar above<br>to group records.',
       emptyTitleNoRec: 'No records',
       emptySubNoRec:   'The selected table contains no records.',
+      emptyNoDataTitle: 'No records to read columns from',
+      emptyNoDataSub:   'The current table or filter returned zero rows.<br>Open an unfiltered view or pick another linked row, then choose a grouping column.',
       groups:          'groups',
       records:         'records',
       record:          'record',
@@ -607,6 +611,7 @@
   // ── 3. État ───────────────────────────────────────────────
   let allRecords = [];
   let allColumns = [];
+  let knownDateCols = new Set();   // colonnes date-like déjà observées (persiste sur fetch vide)
   let groupBy    = '';
   let sortMode   = 'alpha-asc';
   let collapsed  = new Set();
@@ -1031,8 +1036,14 @@
     if (allRecords.length > 0) {
       allColumns = Object.keys(allRecords[0])
         .filter(k => k !== 'id' && k !== 'manualSort');
-      rebuildColumnSelect();
+      allColumns.forEach(c => {
+        if (isDateLikeColumn(c)) knownDateCols.add(c);
+        else knownDateCols.delete(c);
+      });
     }
+    // Toujours reconstruire : les colonnes déjà connues restent proposées
+    // même quand le filtre courant ne renvoie aucun enregistrement.
+    rebuildColumnSelect();
     if (settingsPanel.classList.contains('open')) refreshAggSection();
     render();
   });
@@ -1050,7 +1061,8 @@
       opt.value = col; opt.textContent = col;
       groupSelect.appendChild(opt);
       // Colonnes date-like : granularités jour / mois / année en plus
-      if (isDateLikeColumn(col)) {
+      // (knownDateCols persiste même quand le fetch courant est vide)
+      if (knownDateCols.has(col)) {
         DATE_GRANULARITIES.forEach(g => {
           const o = document.createElement('option');
           o.value = `${col}::${g}`;
@@ -1146,10 +1158,14 @@
 
     if (!groupBy || allRecords.length === 0) {
       emptyState.style.display = '';
+      // Aucune colonne connue (jamais vu de données) : message dédié.
+      const noData = !groupBy && allColumns.length === 0;
       emptyState.querySelector('.empty-title').textContent =
-        !groupBy ? T.emptyTitle : T.emptyTitleNoRec;
+        noData ? T.emptyNoDataTitle
+               : (!groupBy ? T.emptyTitle : T.emptyTitleNoRec);
       emptyState.querySelector('.empty-sub').innerHTML =
-        !groupBy ? T.emptySub : T.emptySubNoRec;
+        noData ? T.emptyNoDataSub
+               : (!groupBy ? T.emptySub : T.emptySubNoRec);
       statsbar.classList.remove('visible');
       return;
     }
