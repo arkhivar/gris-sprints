@@ -9,15 +9,16 @@ Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacos
 ## Features
 
 - **Group by any column** — dropdown selector in the toolbar
-- **Date-aware grouping** — Date/DateTime columns can be grouped **by day, month or year** (UTC-based), with chronological sorting (see below)
+- **Date-aware grouping** — Date/DateTime columns (epoch seconds **or** ISO 8601 text) can be grouped **by day, month or year** (UTC-based), with chronological sorting (see below)
 - **Fold / unfold** each group by clicking its header; **expand all / collapse all** in one click
 - **Group sort**: alphabetical A→Z or Z→A, by record count ascending or descending
+- **Row actions** — duplicate ⧉ and delete ✕ any record inline (two-step delete, requires **Full access**, see below)
 - **Aggregates in group headers** — configurable count / sum / avg / min / max chips per group (see below)
 - **Stable color per group** (rotating palette) with per-group color picker
 - **Null values** collected in an *(empty)* group, sorted last
-- **Cell formatting**: booleans ✓/✗ (several display styles), localized numbers, arrays
-- **Per-group scrolling** with adjustable max height
-- **Persisted options** via `grist.setOption()` — grouping column, sort order, colors, and aggregate rules all survive page reload
+- **Cell formatting**: booleans ✓/✗ (several display styles), localized numbers, ISO dates, arrays
+- **Unlimited group height by default** — uncollapsed groups show all their rows and the page scrolls; an optional per-group height cap can be enabled in settings (see below)
+- **Persisted options** via `grist.setOption()` — grouping column, sort order, colors, height cap, and aggregate rules all survive page reload
 - **EN / FR localization** — interface language follows the browser locale (English by default)
 
 ## Setup
@@ -27,8 +28,35 @@ Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacos
    ```
    https://arkhivar.github.io/grist-sprints/widget_groupes.html
    ```
-3. Select access level **Read table**
+3. Select access level **Full access** — required for the row actions (duplicate / delete). With a lower level the view still works but the write actions fail with an error toast.
 4. Pick a grouping column in the widget toolbar
+
+## Row actions (duplicate / delete)
+
+Every record row has a trailing actions cell, revealed on row hover (and always
+visible on keyboard focus):
+
+- **⧉ Duplicate** — clones the record via `grist.selectedTable.create()` (all
+  fields copied except `id` and `manualSort`).
+- **✕ Delete** — **two-step**: the first click arms the button (red, `?`,
+  auto-disarms after ~4 s); the second click executes
+  `grist.selectedTable.destroy(id)`.
+
+These are **write operations**: the widget must be configured with **Full
+access** in Grist (step 3 above). If access is insufficient, the operation is
+rejected and a transient error toast is shown at the top of the widget. After a
+successful action the widget does not patch its own state — Grist pushes fresh
+records and the view re-renders.
+
+## Group height
+
+By default, uncollapsed groups have **no height limit**: all rows are visible
+and the widget page scrolls. To restore the old capped behavior, open the
+settings panel (⚙) and tick **Limit group height** — the slider (80–600 px)
+then becomes active and each group body scrolls internally at that height.
+Both the checkbox (`limitMaxH`) and the slider value (`maxGroupH`) are
+persisted. Older widgets that only have a saved `maxGroupH` migrate to the
+unlimited default (checkbox unticked).
 
 ## Aggregates in group headers
 
@@ -56,8 +84,14 @@ Available functions:
 Grist delivers **Date** and **DateTime** column values to custom widgets as Unix
 epoch seconds (UTC). When a column's non-empty values are all numbers in the
 plausible epoch range (1980-01-01 → 2100-01-01 UTC), the widget treats it as
-date-like and the **Group by** dropdown offers three extra granularities in
-addition to the plain exact-value option:
+date-like. **Text columns storing ISO 8601 dates** (e.g.
+`2026-07-15T00:00:00.000Z` or `2026-07-15 14:30`) are detected the same way:
+every non-empty value must match the ISO pattern, parse successfully, and fall
+in the 1980 → 2100 range. Values without a timezone designator are interpreted
+as UTC (`YYYY-MM-DD HH:mm` is normalized to `YYYY-MM-DDTHH:mmZ` before parsing).
+
+Date-like columns (numeric or ISO text) get three extra granularities in the
+**Group by** dropdown, in addition to the plain exact-value option:
 
 - `Column — by day` → one group per UTC calendar day (label e.g. *7 Apr 2025*)
 - `Column — by month` → one group per UTC month (label e.g. *April 2025*)
@@ -75,6 +109,8 @@ Details:
   (no suffix) keep working exactly as before.
 - Day-aligned integer values (midnight UTC) in date-like columns render as
   `YYYY-MM-DD` in table cells instead of raw epoch numbers.
+- ISO-text values in date-like columns render as `YYYY-MM-DD` when the time
+  part is 00:00:00, otherwise as `YYYY-MM-DD HH:mm` (UTC).
 
 ## Hosting
 
