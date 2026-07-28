@@ -28,12 +28,12 @@
       records:         'enregistrements',
       record:          'enregistrement',
       noOtherCol:      'Aucune autre colonne à afficher.',
-      groupCaption:    'Groupe :',
+      groupCaption:    'Groupe :',
       emptyGroup:      '(vide)',
       colorLabel:      'Couleur du groupe',
       resetColorLabel: 'Réinitialiser la couleur du groupe',
       resetMaxH:       'Réinitialiser la hauteur maximale',
-      boolFormatLabel: 'Format booléen :',
+      boolFormatLabel: 'Format booléen :',
       ariaToolbar:     'Options de groupement',
       ariaSettings:    'Réglages d’affichage',
       ariaContent:     'Groupes d’enregistrements',
@@ -58,9 +58,15 @@
       delRecord:       'Supprimer l’enregistrement',
       confirmDel:      'Confirmer la suppression ?',
       actionFailed:    'Échec de l’action — le widget nécessite l’accès « Full access »',
-      boolTrue:  ['✓ vrai',  'Oui',  'True',  'vrai', '1'],
-      boolFalse: ['✗ faux',  'Non',  'False', 'faux', '0'],
-      boolLabels: ['✓ / ✗', 'Oui / Non', 'True / False', '● badge', '1 / 0'],
+      selCount:        '{n} sélectionné(s)',
+      selDup:          'Dupliquer la sélection',
+      selDel:          'Supprimer la sélection',
+      selClear:        'Effacer',
+      selAll:          'Tout sélectionner',
+      confirmDelSel:   'Confirmer la suppression de la sélection ?',
+      boolTrue:  ['✓ vrai',  'Oui',  'True',  'vrai', '1'],
+      boolFalse: ['✗ faux',  'Non',  'False', 'faux', '0'],
+      boolLabels: ['✓ / ✗', 'Oui / Non', 'True / False', '● badge', '1 / 0'],
     },
     en: {
       groupBy:         'Group by',
@@ -118,9 +124,15 @@
       delRecord:       'Delete record',
       confirmDel:      'Confirm delete?',
       actionFailed:    'Action failed — the widget needs Full access',
-      boolTrue:  ['✓ true',  'Yes',   'True',  'true',  '1'],
-      boolFalse: ['✗ false', 'No',    'False', 'false', '0'],
-      boolLabels: ['✓ / ✗', 'Yes / No', 'True / False', '● badge', '1 / 0'],
+      selCount:        '{n} selected',
+      selDup:          'Duplicate selected',
+      selDel:          'Delete selected',
+      selClear:        'Clear',
+      selAll:          'Select all',
+      confirmDelSel:   'Confirm deleting the selection?',
+      boolTrue:  ['✓ true',  'Yes',   'True',  'true',  '1'],
+      boolFalse: ['✗ false', 'No',    'False', 'false', '0'],
+      boolLabels: ['✓ / ✗', 'Yes / No', 'True / False', '● badge', '1 / 0'],
     }
   };
   const T = I18N[LANG];
@@ -182,6 +194,7 @@
   let limitMaxH  = false;          // false = hauteur illimitée (défaut)
   let dateLikeCache = new Map();   // col → bool, invalidé à chaque onRecords
   const armedDeletes = new Map();  // id (string) → timeoutId, confirmation en 2 temps
+  const selectedIds = new Set();   // ids (string) des enregistrements cochés
 
   // ── 4. Refs DOM ───────────────────────────────────────────
   const groupSelect   = document.getElementById('group-select');
@@ -229,10 +242,15 @@
     document.getElementById('content').setAttribute('aria-label', T.ariaContent);
     // Réécriture des spans de stats (preserve les ids)
     const statSpans = document.getElementById('statsbar').querySelectorAll(':scope > span');
-    statSpans[0].innerHTML = '<span class="stat-val" id="stat-groups">0</span> ' + T.groups;
-    statSpans[2].innerHTML = '<span class="stat-val" id="stat-records">0</span> ' + T.records;
+    statSpans[0].innerHTML = '<span class="stat-val" id="stat-groups">0</span> ' + T.groups;
+    statSpans[2].innerHTML = '<span class="stat-val" id="stat-records">0</span> ' + T.records;
     document.querySelector('.empty-title').textContent = T.emptyTitle;
     document.querySelector('.empty-sub').innerHTML     = T.emptySub;
+    // Barre d'actions de sélection multiple (bas de fenêtre)
+    document.getElementById('sel-count-txt').textContent = T.selCount.replace('{n}', '0');
+    document.getElementById('btn-sel-dup').textContent   = T.selDup;
+    document.getElementById('btn-sel-del').textContent   = T.selDel;
+    document.getElementById('btn-sel-clear').textContent = T.selClear;
   }
   applyI18nToDOM();
   statGroups  = document.getElementById('stat-groups');
