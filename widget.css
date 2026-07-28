@@ -352,7 +352,7 @@
     .rec-table .col-actions { width: 1%; padding: 4px 6px; }
     .rec-table td.row-actions { padding: 3px 6px; white-space: nowrap; text-align: right; }
     .row-act {
-      opacity: 0;
+      opacity: .6;
       font-family: var(--font); font-size: 12px; line-height: 1;
       width: 22px; height: 22px; padding: 0; margin-left: 3px;
       border: 1px solid var(--border-strong); border-radius: var(--radius);
@@ -360,6 +360,7 @@
       transition: opacity .12s, background .1s, color .1s, border-color .1s;
       vertical-align: middle;
     }
+    /* Toujours visibles (atténuées) ; pleine opacité au survol / focus / armement */
     .rec-table tbody tr:hover .row-act,
     .row-act:focus-visible,
     .row-act.armed { opacity: 1; }
@@ -379,3 +380,43 @@
       font-size: 12px; font-weight: 500; box-shadow: var(--shadow);
     }
     .toast.visible { display: block; }
+
+    /* ── Sélection multiple : barre d'actions + cases à cocher ── */
+    #sel-bar {
+      display: none;
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+      flex-direction: row; align-items: center; gap: 8px;
+      padding: 8px 12px;
+      background: var(--surface);
+      border-top: 1px solid var(--border-strong);
+      box-shadow: 0 -2px 8px rgba(0,0,0,.08);
+      font-size: 12px;
+    }
+    #sel-bar.visible { display: flex; }
+    /* La barre fixe ne doit jamais masquer les dernières lignes */
+    #app.has-sel #content { padding-bottom: 52px; }
+    #sel-count-txt { font-weight: 500; color: var(--text); white-space: nowrap; }
+
+    .sel-btn {
+      font-family: var(--font); font-size: 12px;
+      padding: 4px 10px;
+      border: 1px solid var(--border-strong); border-radius: var(--radius);
+      background: var(--surface); color: var(--text); cursor: pointer;
+      white-space: nowrap; outline: none;
+      transition: background .1s, color .1s, border-color .1s;
+    }
+    .sel-btn:hover         { background: var(--bg); }
+    .sel-btn:focus-visible { box-shadow: var(--focus-ring); border-color: var(--accent); }
+    .sel-btn:disabled      { opacity: .4; cursor: default; }
+    .sel-btn.sel-del:hover { color: #dc2626; border-color: #dc2626; }
+    .sel-btn.sel-del.armed { background: #dc2626; border-color: #dc2626; color: #fff; }
+
+    /* Colonne de sélection (première colonne des tableaux) */
+    .rec-table .col-sel    { width: 1%; padding: 4px 6px; }
+    .rec-table td.row-sel  { padding: 3px 6px; text-align: center; }
+    .sel-cb { cursor: pointer; accent-color: var(--accent); }
+
+    /* Surlignage des lignes cochées */
+    .rec-table tbody tr.row-selected td {
+      background: color-mix(in srgb, var(--accent) 8%, transparent);
+    }
