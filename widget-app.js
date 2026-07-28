@@ -173,7 +173,7 @@
 
   function formatAggValue(v, fn) {
     if (fn === 'avg') v = Math.round(v * 100) / 100;   // ≤ 2 décimales
-    return v.toLocaleString(LANG === 'fr' ? 'fr-FR' : 'en-US');
+    return String(v);   // pas de séparateur de milliers (-1425, jamais -1,425)
   }
 
   // Puces affichées dans l'en-tête après le badge du nombre d'enregistrements
@@ -307,6 +307,13 @@
 
   grist.onRecords((records) => {
     allRecords = records || [];
+    // Élaguer la sélection : retirer les ids absents des nouveaux enregistrements
+    if (selectedIds.size > 0) {
+      const present = new Set(allRecords.map(r => String(r.id)));
+      selectedIds.forEach(id => { if (!present.has(id)) selectedIds.delete(id); });
+    }
+    // updateSelBar vit dans widget-actions.js (chargé après) — garde typeof
+    if (typeof updateSelBar === 'function') updateSelBar();
     dateLikeCache = new Map();
     if (allRecords.length > 0) {
       allColumns = Object.keys(allRecords[0])
@@ -522,13 +529,22 @@
   }
 
   function buildTable(cols, records, groupLabel) {
-    const thead = cols.map(c =>
+    // Colonne de sélection multiple en premier, colonne d'actions en dernier
+    const thead = '<th class="col-sel"><input type="checkbox" class="sel-cb sel-cb-all"'
+                + ` aria-label="${esc(T.selAll)}"></th>`
+                + cols.map(c =>
       `<th scope="col" title="${esc(c)}">${esc(c)}</th>`
     ).join('') + '<th class="col-actions" aria-hidden="true"></th>';
-    const tbody = records.map(rec =>
-      `<tr>${cols.map(c => `<td>${renderCell(rec[c], c)}</td>`).join('')}`
-      + `<td class="row-actions">${rowActionsHtml(rec)}</td></tr>`
-    ).join('');
+    const tbody = records.map(rec => {
+      const idStr = String(rec.id);
+      const sel   = selectedIds.has(idStr);
+      return `<tr${sel ? ' class="row-selected"' : ''}>`
+      + `<td class="row-sel"><input type="checkbox" class="sel-cb sel-cb-row"`
+      + ` data-id="${esc(idStr)}"${sel ? ' checked' : ''}`
+      + ` aria-label="${esc(T.selAll)}"></td>`
+      + `${cols.map(c => `<td>${renderCell(rec[c], c)}</td>`).join('')}`
+      + `<td class="row-actions">${rowActionsHtml(rec)}</td></tr>`;
+    }).join('');
     return `<div class="scroll-inner"><table class="rec-table">
       <caption>${T.groupCaption} ${esc(groupLabel)}</caption>
       <thead><tr>${thead}</tr></thead>
@@ -537,7 +553,7 @@
   }
 
   // Cellule d'actions par ligne : dupliquer ⧉ / supprimer ✕
-  // (révélée au survol, toujours visible au focus clavier).
+  // (toujours visible, atténuée au repos ; pleine opacité au survol / focus).
   function rowActionsHtml(rec) {
     const id = esc(String(rec.id));
     return `<button type="button" class="row-act act-dup" data-act="dup" data-id="${id}"`
@@ -639,12 +655,13 @@
       // → affichage YYYY-MM-DD plutôt qu'un epoch brut.
       if (col && Number.isInteger(val) && val % 86400 === 0 && isDateLikeColumn(col))
         return `<span class="cell-num">${new Date(val * 1000).toISOString().slice(0, 10)}</span>`;
-      return `<span class="cell-num">${val.toLocaleString(LOCALE)}</span>`;
+      return `<span class="cell-num">${String(val)}</span>`;
     }
     if (Array.isArray(val)) return esc(val.join(', '));
-    // Chaîne ISO dans une colonne date-like → "YYYY-MM-DD" (minuit UTC)
-    // ou "YYYY-MM-DD HH:mm" sinon.
-    if (typeof val === 'string' && col && isDateLikeColumn(col)) {
+    // Chaîne ISO 8601 détectée valeur par valeur → "YYYY-MM-DD" (minuit UTC)
+    // ou "YYYY-MM-DD HH:mm" sinon. parseIsoDateSec est strict (regex + plage
+    // 1980–2100), donc aucun risque de reformater du texte ordinaire.
+    if (typeof val === 'string') {
       const sec = parseIsoDateSec(val);
       if (sec != null) {
         const d    = new Date(sec * 1000);
