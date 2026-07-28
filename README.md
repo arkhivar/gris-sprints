@@ -114,16 +114,23 @@ Details:
 
 ## Hosting
 
-The widget is a single self-contained HTML file — no npm, no build step.
+No npm, no build step — just a few static files deployed together.
 
 - **GitHub Pages**: enabled on this repo (source: `main` branch, root). Widget URL: `https://arkhivar.github.io/grist-sprints/widget_groupes.html`
-- **Any static HTTP server** works too (Netlify, Scalingo, a public WebDAV share…)
+- **Any static HTTP server** works too (Netlify, Scalingo, a public WebDAV share…) — copy all files side by side
 
 ## Files
 
+The widget is split into small files (easier to review and maintain). All of
+them must be deployed together — GitHub Pages serves them side by side from
+the same repo, so no extra hosting steps are needed:
+
 | File | Description |
 |---|---|
-| `widget_groupes.html` | Main (and only) widget file |
+| `widget_groupes.html` | Page shell — loads the CSS and the two scripts |
+| `widget.css` | All styles |
+| `widget-core.js` | i18n (EN/FR), constants, state, date helpers |
+| `widget-app.js` | Settings panel, aggregates, Grist wiring, grouping, rendering, row actions |
 
 ## Credits
 
