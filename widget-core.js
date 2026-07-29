@@ -65,7 +65,7 @@
       boolFalse: ['✗ false', 'No',    'False', 'false', '0'],
       boolLabels: ['✓ / ✗', 'Yes / No', 'True / False', '● badge', '1 / 0'],
   };
-  const WIDGET_VERSION = '5.0';
+  const WIDGET_VERSION = '5.1';
   const LOCALE = 'en-US';
 
   // ── Dates: Grist sends Date/DateTime as epoch seconds (UTC) ──
@@ -255,6 +255,18 @@
   // Date-like value (epoch number or ISO string) → epoch seconds.
   function toEpochSec(v) {
     return typeof v === 'number' ? v : parseIsoDateSec(v);
+  }
+
+  // Render a parsed UTC instant without leaking Grist's transport format
+  // (epoch seconds or an ISO string) into the table. Date-only/midnight values
+  // stay compact; DateTime values retain their hours and minutes.
+  function formatUtcDateSec(sec) {
+    const d = new Date(sec * 1000);
+    const date = d.toISOString().slice(0, 10);
+    const hh = d.getUTCHours(), mm = d.getUTCMinutes(), ss = d.getUTCSeconds();
+    return hh === 0 && mm === 0 && ss === 0
+      ? date
+      : `${date} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
   }
 
   function isDateLikeColumn(col) {

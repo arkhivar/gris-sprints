@@ -676,10 +676,10 @@
     if (typeof val === 'number') {
       const isYearLike = Number.isInteger(val) && val >= 1000 && val <= 9999;
       if (isYearLike) return `<span class="cell-num">${val}</span>`;
-      // Day-aligned integer (midnight UTC) in a date-like column
-      // → render YYYY-MM-DD instead of a raw epoch.
-      if (col && Number.isInteger(val) && val % 86400 === 0 && isDateLikeColumn(col))
-        return `<span class="cell-num">${new Date(val * 1000).toISOString().slice(0, 10)}</span>`;
+      // Grist Date and DateTime columns both arrive as epoch seconds. Format
+      // every value in a detected date column, not only midnight-aligned dates.
+      if (col && isDateLikeColumn(col))
+        return `<span class="cell-num">${formatUtcDateSec(val)}</span>`;
       return `<span class="cell-num">${String(val)}</span>`;
     }
     if (Array.isArray(val)) return esc(val.join(', '));
@@ -689,13 +689,7 @@
     if (typeof val === 'string') {
       const sec = parseIsoDateSec(val);
       if (sec != null) {
-        const d    = new Date(sec * 1000);
-        const date = d.toISOString().slice(0, 10);
-        const hh = d.getUTCHours(), mm = d.getUTCMinutes(), ss = d.getUTCSeconds();
-        const txt  = (hh === 0 && mm === 0 && ss === 0)
-          ? date
-          : `${date} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-        return `<span class="cell-num">${txt}</span>`;
+        return `<span class="cell-num">${formatUtcDateSec(sec)}</span>`;
       }
     }
     return esc(String(val));
