@@ -2,6 +2,33 @@
 
 All notable changes to the grist-sprints grouped-view widget.
 
+## v5.0 — 2026-07-29
+
+### Changed
+- **English rebrand** — the widget page is now `groups.html`
+  (`<html lang="en">`, English static markup); `widget_groupes.html` becomes
+  a tiny redirect stub (`<meta http-equiv="refresh">` + `location.replace`)
+  so existing embeds keep working.
+- **French localization removed** — the `I18N.fr` dictionary and the
+  `navigator.language` switch are gone; `T` is now a flat English-only dict
+  and `LOCALE` is fixed to `en-US`. All code comments are in English.
+
+### Added
+- **Version badge** in the toolbar (`v5.0`), fed from the new
+  `WIDGET_VERSION` constant.
+- **Diagnostics section** in the settings panel (⚙): widget version, record
+  and column counts, and per-column detection (JS type, date-like yes/no,
+  first raw value rendered with `JSON.stringify` so invisible characters
+  appear as `\uXXXX` escapes).
+
+### Fixed
+- **Widened invisible-character strip** in `parseIsoDateSec` — in addition to
+  ZWSP/ZWNJ/ZWJ/word joiner/BOM, the parser now also strips soft hyphen
+  (U+00AD), Mongolian vowel separator (U+180E), LRM/RLM (U+200E/U+200F),
+  bidi embedding/override controls (U+202A–U+202E), deprecated format
+  characters (U+2061–U+2064) and bidi isolates (U+2066–U+2069) before
+  matching ISO dates.
+
 ## v4.1 — 2026-07-29
 
 ### Fixed

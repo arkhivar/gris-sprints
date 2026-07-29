@@ -2,7 +2,7 @@
 
 > Grist custom widget — collapsible grouped view, Airtable/Notion-style. Groups records by any column with fold/unfold, group sorting, per-group colors, aggregate chips in group headers, and persisted options via `grist.setOption()`.
 
-Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacoste/grist-widget-grouped-view) with added **aggregates in group headers** and full **EN/FR localization**.
+Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacoste/grist-widget-grouped-view) with added **aggregates in group headers**. Since v5.0 the interface is **English-only**.
 
 ---
 
@@ -20,15 +20,17 @@ Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacos
 - **Cell formatting**: booleans ✓/✗ (several display styles), plain numbers (no thousand separators — `-1425`, not `-1,425`), ISO dates, arrays
 - **Unlimited group height by default** — uncollapsed groups show all their rows and the page scrolls; an optional per-group height cap can be enabled in settings (see below)
 - **Persisted options** via `grist.setOption()` — grouping column, sort order, colors, height cap, and aggregate rules all survive page reload
-- **EN / FR localization** — interface language follows the browser locale (English by default)
+- **English-only UI** — as of v5.0 the interface is English only (the old EN/FR auto-localization was removed)
+- **⚙ Diagnostics section** — the settings panel ends with a diagnostics list showing the widget version, per-column type detection (value type, date-like yes/no) and the first raw value of each column via `JSON.stringify`, so invisible characters appear as `\uXXXX` escapes
 
 ## Setup
 
 1. In your Grist document, add a widget → **Custom**
 2. Set the custom URL to:
    ```
-   https://arkhivar.github.io/grist-sprints/widget_groupes.html
+   https://arkhivar.github.io/grist-sprints/groups.html
    ```
+   (The old `widget_groupes.html` URL still works — it redirects to `groups.html`.)
 3. Select access level **Full access** — required for the row actions (duplicate / delete). With a lower level the view still works but the write actions fail with an error toast.
 4. Pick a grouping column in the widget toolbar
 
@@ -131,9 +133,10 @@ Details:
   otherwise as `YYYY-MM-DD HH:mm` (UTC). This cell rendering is **per value**:
   any string matching the ISO pattern is formatted even if the column as a
   whole is not date-like. The parser is **tolerant of import artifacts**:
-  zero-width characters (ZWSP/ZWNJ/ZWJ/word joiner/BOM) are stripped and
-  whitespace runs (including non-breaking spaces) are normalized before
-  matching, so strings copied from exports still parse.
+  invisible/format characters (zero-width spaces, LRM/RLM, bidi controls,
+  soft hyphen, BOM…) are stripped and whitespace runs (including
+  non-breaking spaces) are normalized before matching, so strings copied
+  from exports still parse.
 
 ## Troubleshooting
 
@@ -141,7 +144,8 @@ Details:
   files are versioned (`?v=N` in the HTML) to defeat browser caching — reload
   the Grist document, or hard-refresh (Ctrl/Cmd+Shift+R). If a specific value
   still renders raw, it contains a character outside the tolerated set —
-  inspect the raw cell content.
+  open ⚙ → **Diagnostics** and check the column's `first:` value for
+  `\uXXXX` escapes.
 - **Widget shows all records / ignores the linked selection**: removing and
   re-adding a custom widget **resets its data selection**. Restore it via the
   widget's ⋮ menu → *Edit data selection*: source table **ungrouped**, and
@@ -159,7 +163,7 @@ Details:
 
 The widget is a set of small static files — no npm, no build step.
 
-- **GitHub Pages**: enabled on this repo (source: `main` branch, root). Widget URL: `https://arkhivar.github.io/grist-sprints/widget_groupes.html`
+- **GitHub Pages**: enabled on this repo (source: `main` branch, root). Widget URL: `https://arkhivar.github.io/grist-sprints/groups.html`
 - **Any static HTTP server** works too (Netlify, Scalingo, a public WebDAV share…)
 
 ## Files
@@ -170,10 +174,11 @@ the same repo, so no extra hosting steps are needed:
 
 | File | Description |
 |---|---|
-| `widget_groupes.html` | Page shell — loads the CSS and the three scripts |
+| `groups.html` | Page shell — loads the CSS and the three scripts |
+| `widget_groupes.html` | Redirect stub for the old URL (points to `groups.html`) |
 | `widget.css` | All styles |
-| `widget-core.js` | i18n (EN/FR), constants, state, date helpers |
-| `widget-app.js` | Settings panel, aggregates, Grist wiring, grouping, rendering, row actions |
+| `widget-core.js` | English UI strings, constants, state, date helpers |
+| `widget-app.js` | Settings panel, aggregates, diagnostics, Grist wiring, grouping, rendering, row actions |
 | `widget-actions.js` | Multi-select state, selection action bar, bulk duplicate/delete |
 
 ## Credits
