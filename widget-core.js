@@ -1,74 +1,5 @@
-  // ── 1. Internationalisation (en premier — tout dépend de T) ──
-  const LANG = navigator.language.startsWith('fr') ? 'fr' : 'en';
-
-  const I18N = {
-    fr: {
-      groupBy:         'Grouper par',
-      sortBy:          'Tri',
-      expandAll:       'Tout déplier',
-      collapseAll:     'Tout plier',
-      settingsLabel:   'Réglages d’affichage',
-      chooseCol:       '— choisir —',
-      sortAlphaAsc:    'A → Z',
-      sortAlphaDesc:   'Z → A',
-      sortCountDesc:   'Nb ↓',
-      sortCountAsc:    'Nb ↑',
-      sectionColors:   'Couleurs des groupes',
-      sectionMaxH:     'Hauteur max par groupe',
-      sectionBool:     'Affichage vrai / faux',
-      reset:           'Réinitialiser',
-      noGroups:        'Aucun groupe — choisis une colonne de groupement.',
-      emptyTitle:      'Aucune colonne sélectionnée',
-      emptySub:        'Choisis une colonne dans la barre ci-dessus<br>pour grouper les enregistrements.',
-      emptyTitleNoRec: 'Aucun enregistrement',
-      emptySubNoRec:   'La table sélectionnée ne contient aucun enregistrement.',
-      emptyNoDataTitle: 'Aucun enregistrement pour lire les colonnes',
-      emptyNoDataSub:   'La table ou le filtre actuel ne renvoie aucune ligne.<br>Ouvre une vue non filtrée ou choisis une autre ligne liée, puis choisis une colonne de groupement.',
-      groups:          'groupes',
-      records:         'enregistrements',
-      record:          'enregistrement',
-      noOtherCol:      'Aucune autre colonne à afficher.',
-      groupCaption:    'Groupe :',
-      emptyGroup:      '(vide)',
-      colorLabel:      'Couleur du groupe',
-      resetColorLabel: 'Réinitialiser la couleur du groupe',
-      resetMaxH:       'Réinitialiser la hauteur maximale',
-      boolFormatLabel: 'Format booléen :',
-      ariaToolbar:     'Options de groupement',
-      ariaSettings:    'Réglages d’affichage',
-      ariaContent:     'Groupes d’enregistrements',
-      ariaGroupRegion: 'Enregistrements — ',
-      cellEmpty:       'valeur vide',
-      sectionAggregates: 'Agrégats',
-      aggAdd:          '+ Ajouter',
-      aggFnCount:      'Nombre de valeurs',
-      aggFnSum:        'Somme',
-      aggFnAvg:        'Moyenne',
-      aggFnMin:        'Minimum',
-      aggFnMax:        'Maximum',
-      aggFnLabel:      'Fonction d’agrégation',
-      aggColLabel:     'Colonne de l’agrégat',
-      aggRemove:       'Supprimer l’agrégat',
-      aggNoRules:      'Aucun agrégat configuré.',
-      byDay:           'par jour',
-      byMonth:         'par mois',
-      byYear:          'par année',
-      limitMaxH:       'Limiter la hauteur des groupes',
-      dupRecord:       'Dupliquer l’enregistrement',
-      delRecord:       'Supprimer l’enregistrement',
-      confirmDel:      'Confirmer la suppression ?',
-      actionFailed:    'Échec de l’action — le widget nécessite l’accès « Full access »',
-      selCount:        '{n} sélectionné(s)',
-      selDup:          'Dupliquer la sélection',
-      selDel:          'Supprimer la sélection',
-      selClear:        'Effacer',
-      selAll:          'Tout sélectionner',
-      confirmDelSel:   'Confirmer la suppression de la sélection ?',
-      boolTrue:  ['✓ vrai',  'Oui',  'True',  'vrai', '1'],
-      boolFalse: ['✗ faux',  'Non',  'False', 'faux', '0'],
-      boolLabels: ['✓ / ✗', 'Oui / Non', 'True / False', '● badge', '1 / 0'],
-    },
-    en: {
+  // ── 1. UI strings (English only — everything depends on T) ──
+  const T = {
       groupBy:         'Group by',
       sortBy:          'Sort',
       expandAll:       'Expand all',
@@ -133,18 +64,17 @@
       boolTrue:  ['✓ true',  'Yes',   'True',  'true',  '1'],
       boolFalse: ['✗ false', 'No',    'False', 'false', '0'],
       boolLabels: ['✓ / ✗', 'Yes / No', 'True / False', '● badge', '1 / 0'],
-    }
   };
-  const T = I18N[LANG];
-  const LOCALE = LANG === 'fr' ? 'fr-FR' : 'en-US';
+  const WIDGET_VERSION = '5.0';
+  const LOCALE = 'en-US';
 
-  // ── Dates : Grist transmet Date/DateTime en secondes epoch (UTC) ──
+  // ── Dates: Grist sends Date/DateTime as epoch seconds (UTC) ──
   const DATE_EPOCH_MIN = 315532800;    // 1980-01-01T00:00:00Z
   const DATE_EPOCH_MAX = 4102444800;   // 2100-01-01T00:00:00Z
   const DATE_GRANULARITIES = ['day', 'month', 'year'];
   const GRAN_I18N_KEY = { day: 'byDay', month: 'byMonth', year: 'byYear' };
 
-  // ── 2. Constantes (utilisent T) ──────────────────────────
+  // ── 2. Constants (use T) ──────────────────────────
   const DEFAULT_PALETTE = [
     '#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6',
     '#ec4899','#06b6d4','#84cc16','#f97316','#6366f1',
@@ -171,7 +101,7 @@
   }
   const BOOL_FORMATS = makeBoolFormats();
 
-  // Fonctions d'agrégation : symbole d'en-tête + restriction numérique
+  // Aggregate functions: header symbol + numeric-only restriction
   const AGG_FNS = {
     count: { symbol: '#', label: T.aggFnCount, numericOnly: false },
     sum:   { symbol: 'Σ', label: T.aggFnSum,   numericOnly: true },
@@ -180,10 +110,10 @@
     max:   { symbol: '↑', label: T.aggFnMax,   numericOnly: true },
   };
 
-  // ── 3. État ───────────────────────────────────────────────
+  // ── 3. State ───────────────────────────────────────────────
   let allRecords = [];
   let allColumns = [];
-  let knownDateCols = new Set();   // colonnes date-like déjà observées (persiste sur fetch vide)
+  let knownDateCols = new Set();   // date-like columns already observed (persists across empty fetches)
   let groupBy    = '';
   let sortMode   = 'alpha-asc';
   let collapsed  = new Set();
@@ -191,12 +121,12 @@
   let aggregates = [];
   let boolFmtKey = 'check';
   let maxGroupH  = 200;
-  let limitMaxH  = false;          // false = hauteur illimitée (défaut)
-  let dateLikeCache = new Map();   // col → bool, invalidé à chaque onRecords
-  const armedDeletes = new Map();  // id (string) → timeoutId, confirmation en 2 temps
-  const selectedIds = new Set();   // ids (string) des enregistrements cochés
+  let limitMaxH  = false;          // false = unlimited height (default)
+  let dateLikeCache = new Map();   // col → bool, reset on every onRecords
+  const armedDeletes = new Map();  // id (string) → timeoutId, two-step confirmation
+  const selectedIds = new Set();   // ids (string) of checked records
 
-  // ── 4. Refs DOM ───────────────────────────────────────────
+  // ── 4. DOM refs ───────────────────────────────────────────
   const groupSelect   = document.getElementById('group-select');
   const sortSelect    = document.getElementById('sort-select');
   const content       = document.getElementById('content');
@@ -213,7 +143,7 @@
   let   statGroups    = document.getElementById('stat-groups');
   let   statRecords   = document.getElementById('stat-records');
 
-  // ── 5. Appliquer i18n au DOM statique ─────────────────────
+  // ── 5. Apply strings to the static DOM ─────────────────────
   function applyI18nToDOM() {
     document.querySelector('label[for="group-select"]').textContent = T.groupBy;
     document.querySelector('label[for="sort-select"]').textContent  = T.sortBy;
@@ -234,29 +164,31 @@
     document.getElementById('btn-add-agg').textContent           = T.aggAdd;
     document.getElementById('agg-fn-select').setAttribute('aria-label', T.aggFnLabel);
     document.getElementById('agg-col-select').setAttribute('aria-label', T.aggColLabel);
-    document.documentElement.lang = LANG;
+    document.documentElement.lang = 'en';
     document.getElementById('btn-reset-maxh').textContent        = T.reset;
     document.getElementById('btn-reset-maxh').setAttribute('aria-label', T.resetMaxH);
     document.querySelector('.toolbar').setAttribute('aria-label', T.ariaToolbar);
     document.getElementById('settings-panel').setAttribute('aria-label', T.ariaSettings);
     document.getElementById('content').setAttribute('aria-label', T.ariaContent);
-    // Réécriture des spans de stats (preserve les ids)
+    // Rewrite the stats spans (preserves the ids)
     const statSpans = document.getElementById('statsbar').querySelectorAll(':scope > span');
     statSpans[0].innerHTML = '<span class="stat-val" id="stat-groups">0</span> ' + T.groups;
     statSpans[2].innerHTML = '<span class="stat-val" id="stat-records">0</span> ' + T.records;
     document.querySelector('.empty-title').textContent = T.emptyTitle;
     document.querySelector('.empty-sub').innerHTML     = T.emptySub;
-    // Barre d'actions de sélection multiple (bas de fenêtre)
+    // Multi-select action bar (bottom of the window)
     document.getElementById('sel-count-txt').textContent = T.selCount.replace('{n}', '0');
     document.getElementById('btn-sel-dup').textContent   = T.selDup;
     document.getElementById('btn-sel-del').textContent   = T.selDel;
     document.getElementById('btn-sel-clear').textContent = T.selClear;
+    document.getElementById('version-badge').textContent = 'v' + WIDGET_VERSION;
+    document.getElementById('lbl-diag').textContent = 'Diagnostics';
   }
   applyI18nToDOM();
   statGroups  = document.getElementById('stat-groups');
   statRecords = document.getElementById('stat-records');
 
-  // ── 6. Utilitaires ────────────────────────────────────────
+  // ── 6. Utilities ────────────────────────────────────────
   function hasBoolCol() {
     const groupCol = parseGroupBy(groupBy).col;
     return allColumns.filter(c => c !== groupCol)
@@ -288,29 +220,31 @@
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  // ── 6b. Dates : détection, encodage, bucketing ─────────────
-  // Une colonne est « date-like » si elle a ≥ 1 valeur non vide et que
-  // toutes ses valeurs non vides sont :
-  //  - des nombres dans la plage epoch [1980-01-01, 2100-01-01] UTC
-  //    (Grist envoie Date/DateTime en secondes), ou
-  //  - des chaînes ISO 8601 (YYYY-MM-DD avec heure/offset optionnels)
-  //    qui se parsent dans la même plage. Les chaînes sans désignateur
-  //    de fuseau sont interprétées en UTC.
+  // ── 6b. Dates: detection, parsing, bucketing ─────────────
+  // A column is "date-like" if it has ≥ 1 non-empty value and all of
+  // its non-empty values are:
+  //  - numbers in the epoch range [1980-01-01, 2100-01-01] UTC
+  //    (Grist sends Date/DateTime as seconds), or
+  //  - ISO 8601 strings (YYYY-MM-DD with optional time/offset)
+  //    that parse into the same range. Strings without a timezone
+  //    designator are interpreted as UTC.
   const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(\s*(Z|[+-]\d{2}:?\d{2}))?)?$/i;
 
-  // Chaîne ISO → secondes epoch UTC, ou null si invalide / hors plage.
-  // Tolérant aux artefacts des imports / copier-coller : on retire d'abord
-  // les caractères invisibles (ZWSP, ZWNJ, ZWJ, word joiner, BOM), puis on
-  // normalise les espaces (insécables, multiples…) en un espace simple.
+  // ISO string → UTC epoch seconds, or null if invalid / out of range.
+  // Tolerant of import / copy-paste artifacts: invisible characters are
+  // stripped first (soft hyphen, Mongolian vowel separator, ZWSP/ZWNJ/ZWJ,
+  // LRM/RLM, bidi embedding/override/isolate controls, deprecated format
+  // chars, word joiner, BOM), then whitespace runs (non-breaking,
+  // multiple…) are normalized to a single space.
   function parseIsoDateSec(v) {
     if (typeof v !== 'string') return null;
     let s = v
-      .replace(/[\u200B-\u200D\u2060\uFEFF]/g, '') // caractères de largeur nulle
+      .replace(/[\u00AD\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u206F\uFEFF]/g, '') // invisible / format characters
       .trim()
-      .replace(/\s+/g, ' ');                    // espaces multiples / insécables
+      .replace(/\s+/g, ' ');                    // multiple / non-breaking spaces
     if (!ISO_DATE_RE.test(s)) return null;
-    s = s.replace(' ', 'T');                       // "YYYY-MM-DD HH:mm" → ISO strict
-    if (!/(Z|[+-]\d{2}:?\d{2})$/i.test(s)) s += 'Z'; // sans fuseau → UTC
+    s = s.replace(' ', 'T');                       // "YYYY-MM-DD HH:mm" → strict ISO
+    if (!/(Z|[+-]\d{2}:?\d{2})$/i.test(s)) s += 'Z'; // no timezone → UTC
     const ms = Date.parse(s);
     if (isNaN(ms)) return null;
     const sec = ms / 1000;
@@ -318,7 +252,7 @@
     return sec;
   }
 
-  // Valeur date-like (nombre epoch ou chaîne ISO) → secondes epoch.
+  // Date-like value (epoch number or ISO string) → epoch seconds.
   function toEpochSec(v) {
     return typeof v === 'number' ? v : parseIsoDateSec(v);
   }
@@ -349,14 +283,14 @@
     return has;
   }
 
-  // Décodage de la sélection : "col::day|month|year" ou simple "col".
+  // Decode the selection: "col::day|month|year" or plain "col".
   function parseGroupBy(val) {
     const m = /^(.*)::(day|month|year)$/.exec(val || '');
     return m ? { col: m[1], granularity: m[2] }
              : { col: val, granularity: null };
   }
 
-  // Début de bucket UTC en millisecondes (jour / mois / année).
+  // UTC bucket start in milliseconds (day / month / year).
   function bucketStartMs(epochSec, granularity) {
     const d = new Date(epochSec * 1000);
     const y = d.getUTCFullYear(), m = d.getUTCMonth(), day = d.getUTCDate();
@@ -365,7 +299,7 @@
     return Date.UTC(y, m, day);
   }
 
-  // Libellé localisé du bucket (toujours en UTC).
+  // Localized bucket label (always UTC).
   function bucketLabel(ms, granularity) {
     const d = new Date(ms);
     if (granularity === 'year') return String(d.getUTCFullYear());
