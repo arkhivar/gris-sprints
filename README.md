@@ -127,8 +127,8 @@ Details:
 - The selection is persisted as `Column::day|month|year` via
   `grist.setOption('groupBy', …)` and restored on reload; plain column names
   (no suffix) keep working exactly as before.
-- Day-aligned integer values (midnight UTC) in date-like columns render as
-  `YYYY-MM-DD` in table cells instead of raw epoch numbers.
+- Numeric values in date-like columns render as `YYYY-MM-DD` at midnight UTC
+  or `YYYY-MM-DD HH:mm` otherwise, instead of raw epoch seconds.
 - ISO-text values render as `YYYY-MM-DD` when the time part is 00:00:00,
   otherwise as `YYYY-MM-DD HH:mm` (UTC). This cell rendering is **per value**:
   any string matching the ISO pattern is formatted even if the column as a
