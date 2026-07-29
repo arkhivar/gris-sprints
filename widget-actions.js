@@ -1,8 +1,8 @@
-  // ── 15. Sélection multiple — barre d'actions groupées ──
-  // Chargé après widget-app.js : partage les liaisons top-level
+  // ── 15. Multi-select — bulk action bar ──
+  // Loaded after widget-app.js: shares the top-level bindings
   // (allRecords, selectedIds, content, grist, T, esc, showToast…).
-  // NE PAS redéclarer ces noms. NB : `app` n'existait pas en top-level
-  // (seulement une variable locale dans applyMaxGroupH), on la crée ici.
+  // DO NOT redeclare these names. NB: `app` did not exist at top level
+  // (only a local variable in applyMaxGroupH), so it is created here.
   const app          = document.getElementById('app');
   const selBar       = document.getElementById('sel-bar');
   const selCountTxt  = document.getElementById('sel-count-txt');
@@ -10,7 +10,7 @@
   const btnSelDel    = document.getElementById('btn-sel-del');
   const btnSelClear  = document.getElementById('btn-sel-clear');
 
-  // Affiche / masque la barre selon l'état de la sélection.
+  // Show / hide the bar based on the selection state.
   function updateSelBar() {
     if (selectedIds.size === 0) {
       selBar.classList.remove('visible');
@@ -22,8 +22,8 @@
     }
   }
 
-  // Synchronise la case « tout sélectionner » de chaque tableau :
-  // cochée si toutes les lignes le sont, indéterminée si une partie.
+  // Sync each table's "select all" checkbox:
+  // checked if all rows are, indeterminate if only some.
   function refreshHeaderCbs() {
     content.querySelectorAll('.rec-table').forEach(table => {
       const head = table.querySelector('.sel-cb-all');
@@ -35,13 +35,13 @@
     });
   }
 
-  // Délégation des changements de cases à cocher sur #content.
+  // Delegate checkbox changes on #content.
   content.addEventListener('change', (e) => {
     const cb = e.target;
     if (!(cb instanceof HTMLInputElement) || cb.type !== 'checkbox') return;
 
     if (cb.classList.contains('sel-cb-row')) {
-      // Case d'une ligne : maj du Set + surlignage de la ligne
+      // Row checkbox: update the Set + highlight the row
       const id = cb.dataset.id;
       if (cb.checked) selectedIds.add(id);
       else            selectedIds.delete(id);
@@ -50,7 +50,7 @@
       refreshHeaderCbs();
       updateSelBar();
     } else if (cb.classList.contains('sel-cb-all')) {
-      // Case d'en-tête : (dé)cocher toutes les lignes de CE tableau
+      // Header checkbox: (un)check all rows of THIS table
       const table = cb.closest('table');
       if (!table) return;
       table.querySelectorAll('tbody .sel-cb-row').forEach(rowCb => {
@@ -65,14 +65,14 @@
     }
   });
 
-  // Active / désactive les boutons de la barre pendant une action groupée.
+  // Enable / disable the bar buttons during a bulk action.
   function setSelBarDisabled(disabled) {
     [btnSelDup, btnSelDel, btnSelClear].forEach(b => { b.disabled = disabled; });
   }
 
-  // ── Duplication groupée ──
-  // Séquentiel (await en boucle) pour préserver l'ordre et simplifier
-  // la gestion d'erreur. Grist renverra onRecords → re-render.
+  // ── Bulk duplicate ──
+  // Sequential (await in a loop) to preserve order and simplify
+  // error handling. Grist will send onRecords → re-render.
   btnSelDup.addEventListener('click', async () => {
     if (selectedIds.size === 0) return;
     setSelBarDisabled(true);
@@ -94,7 +94,7 @@
     }
   });
 
-  // ── Suppression groupée (confirmation en 2 temps, comme onDelete) ──
+  // ── Bulk delete (two-step confirmation, like onDelete) ──
   let selDelArmTimer = null;
 
   function disarmSelDelete() {
@@ -108,7 +108,7 @@
 
   btnSelDel.addEventListener('click', async () => {
     if (selectedIds.size === 0) return;
-    // Premier clic : armer (auto-désarmement après ~4 s).
+    // First click: arm (auto-disarm after ~4 s).
     if (!btnSelDel.classList.contains('armed')) {
       btnSelDel.classList.add('armed');
       btnSelDel.textContent = '?';
@@ -117,7 +117,7 @@
       selDelArmTimer = setTimeout(disarmSelDelete, 4000);
       return;
     }
-    // Deuxième clic : exécuter.
+    // Second click: execute.
     disarmSelDelete();
     setSelBarDisabled(true);
     try {
@@ -133,7 +133,7 @@
     }
   });
 
-  // ── Effacer la sélection ──
+  // ── Clear the selection ──
   btnSelClear.addEventListener('click', () => {
     selectedIds.clear();
     content.querySelectorAll('.sel-cb').forEach(cb => {
