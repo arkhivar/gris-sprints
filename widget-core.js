@@ -299,9 +299,15 @@
   const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(\s*(Z|[+-]\d{2}:?\d{2}))?)?$/i;
 
   // Chaîne ISO → secondes epoch UTC, ou null si invalide / hors plage.
+  // Tolérant aux artefacts des imports / copier-coller : on retire d'abord
+  // les caractères invisibles (ZWSP, ZWNJ, ZWJ, word joiner, BOM), puis on
+  // normalise les espaces (insécables, multiples…) en un espace simple.
   function parseIsoDateSec(v) {
     if (typeof v !== 'string') return null;
-    let s = v.trim();
+    let s = v
+      .replace(/[\u200B-\u200D\u2060\uFEFF]/g, '') // caractères de largeur nulle
+      .trim()
+      .replace(/\s+/g, ' ');                    // espaces multiples / insécables
     if (!ISO_DATE_RE.test(s)) return null;
     s = s.replace(' ', 'T');                       // "YYYY-MM-DD HH:mm" → ISO strict
     if (!/(Z|[+-]\d{2}:?\d{2})$/i.test(s)) s += 'Z'; // sans fuseau → UTC
