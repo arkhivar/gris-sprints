@@ -1,12 +1,12 @@
-  // ── 7. Panneau de réglages — bouton ─────────────────────────
+  // ── 7. Settings panel — button ─────────────────────────
   btnSettings.addEventListener('click', () => {
     const isOpen = settingsPanel.classList.toggle('open');
     btnSettings.classList.toggle('active', isOpen);
     btnSettings.setAttribute('aria-expanded', String(isOpen));
-    if (isOpen) { refreshColorGrid(); refreshBoolSection(); refreshAggSection(); }
+    if (isOpen) { refreshColorGrid(); refreshBoolSection(); refreshAggSection(); refreshDiag(); }
   });
 
-  // ── 8. Formats booléens ────────────────────────────────────
+  // ── 8. Boolean formats ────────────────────────────────────
   function buildBoolButtons() {
     boolRow.innerHTML = '';
     BOOL_FORMATS.forEach(fmt => {
@@ -32,7 +32,7 @@
     });
   }
 
-  // ── 9. Grille de couleurs ─────────────────────────────────
+  // ── 9. Color grid ─────────────────────────────────
   function refreshColorGrid() {
     colorGrid.innerHTML = '';
     const groups = getGroups();
@@ -97,9 +97,9 @@
     });
   }
 
-  // ── 10. Hauteur max par groupe (case à cocher + curseur) ──
-  // Case décochée (défaut) : hauteur illimitée, pas de défilement interne.
-  // Case cochée : le curseur est actif et plafonne la hauteur du groupe.
+  // ── 10. Max height per group (checkbox + slider) ──
+  // Unchecked (default): unlimited height, no internal scrolling.
+  // Checked: the slider is active and caps the group height.
   function refreshMaxHControls() {
     document.getElementById('limit-maxh-cb').checked    = limitMaxH;
     document.getElementById('maxh-range').disabled      = !limitMaxH;
@@ -141,9 +141,9 @@
     syncMaxHUI();
   }
 
-  // ── 10b. Agrégats ─────────────────────────────────────────
-  // Une colonne est éligible aux fonctions numériques si toutes ses
-  // valeurs non vides sont des nombres (types Grist Numeric/Int).
+  // ── 10b. Aggregates ─────────────────────────────────────────
+  // A column is eligible for numeric functions if all its non-empty
+  // values are numbers (Grist Numeric/Int types).
   function isNumericColumn(col) {
     let hasNum = false;
     for (const r of allRecords) {
@@ -172,11 +172,11 @@
   }
 
   function formatAggValue(v, fn) {
-    if (fn === 'avg') v = Math.round(v * 100) / 100;   // ≤ 2 décimales
-    return String(v);   // pas de séparateur de milliers (-1425, jamais -1,425)
+    if (fn === 'avg') v = Math.round(v * 100) / 100;   // ≤ 2 decimals
+    return String(v);   // no thousand separators (-1425, never -1,425)
   }
 
-  // Puces affichées dans l'en-tête après le badge du nombre d'enregistrements
+  // Chips shown in the header after the record-count badge
   function buildAggChips(records) {
     if (!aggregates.length) return '';
     const chips = aggregates
@@ -195,8 +195,8 @@
     grist.setOption('aggregates', JSON.stringify(aggregates));
   }
 
-  // Colonnes proposées selon la fonction choisie (numériques seulement
-  // pour sum/avg/min/max, toutes pour count)
+  // Columns offered depend on the chosen function (numeric only
+  // for sum/avg/min/max, all columns for count)
   function rebuildAggColSelect() {
     const fn = aggFnSelect.value || 'count';
     const numericOnly = AGG_FNS[fn] ? AGG_FNS[fn].numericOnly : false;
@@ -211,7 +211,7 @@
   }
 
   function refreshAggSection() {
-    // Liste des règles existantes
+    // Existing rules list
     aggList.innerHTML = '';
     if (aggregates.length === 0) {
       const note = document.createElement('p');
@@ -248,8 +248,31 @@
     rebuildAggColSelect();
   }
 
+  // Diagnostics: per-column type detection + first raw value shown with
+  // JSON.stringify so invisible characters appear as \uXXXX escapes.
+  // (JSON.stringify alone does not escape format chars like LRM, so they
+  // are escaped explicitly after serialization.)
+  function refreshDiag() {
+    const list = document.getElementById('diag-list');
+    list.innerHTML = '';
+    const head = document.createElement('div');
+    head.className = 'diag-row diag-head';
+    head.textContent = `v${WIDGET_VERSION} · ${allRecords.length} records · ${allColumns.length} columns`;
+    list.appendChild(head);
+    allColumns.forEach(col => {
+      const first = allRecords.map(r => r[col]).find(v => v != null && v !== '');
+      const row = document.createElement('div');
+      row.className = 'diag-row';
+      const raw = first === undefined ? '(empty)' : JSON.stringify(first)
+        .replace(/[\u00AD\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u206F\uFEFF]/g,
+          c => '\\u' + c.codePointAt(0).toString(16).padStart(4, '0'));
+      row.textContent = `${col} · ${typeof first} · date-like: ${isDateLikeColumn(col) ? 'yes' : 'no'} · first: ${raw.length > 80 ? raw.slice(0, 80) + '…' : raw}`;
+      list.appendChild(row);
+    });
+  }
+
   function initAggSection() {
-    // Liste déroulante des fonctions (libellés localisés)
+    // Function dropdown (labels from T)
     Object.keys(AGG_FNS).forEach(fn => {
       const opt = document.createElement('option');
       opt.value = fn;
@@ -275,8 +298,8 @@
   }
 
   // ── 11. Grist ────────────────────────────────────────────
-  // Accès complet requis : les actions de ligne (dupliquer / supprimer)
-  // écrivent dans la table via grist.selectedTable.create / destroy.
+  // Full access required: row actions (duplicate / delete)
+  // write to the table via grist.selectedTable.create / destroy.
   grist.ready({ requiredAccess: 'full' });
 
   grist.onOptions((opts) => {
@@ -286,7 +309,7 @@
       if (opts.boolFmtKey && BOOL_FORMATS.find(f => f.key === opts.boolFmtKey))
         boolFmtKey = opts.boolFmtKey;
       if (opts.maxGroupH) maxGroupH = parseInt(opts.maxGroupH) || 200;
-      // Rétrocompat : un maxGroupH enregistré sans limitMaxH → illimité (décoché).
+      // Backward compat: a saved maxGroupH without limitMaxH → unlimited (unchecked).
       if (opts.limitMaxH !== undefined)
         limitMaxH = opts.limitMaxH === true || opts.limitMaxH === 'true' || opts.limitMaxH === 1;
       syncMaxHUI();
@@ -302,17 +325,18 @@
     }
     buildBoolButtons();
     refreshAggSection();
+    refreshDiag();
     render();
   });
 
   grist.onRecords((records) => {
     allRecords = records || [];
-    // Élaguer la sélection : retirer les ids absents des nouveaux enregistrements
+    // Prune the selection: drop ids missing from the new records
     if (selectedIds.size > 0) {
       const present = new Set(allRecords.map(r => String(r.id)));
       selectedIds.forEach(id => { if (!present.has(id)) selectedIds.delete(id); });
     }
-    // updateSelBar vit dans widget-actions.js (chargé après) — garde typeof
+    // updateSelBar lives in widget-actions.js (loaded later) — keep the typeof guard
     if (typeof updateSelBar === 'function') updateSelBar();
     dateLikeCache = new Map();
     if (allRecords.length > 0) {
@@ -323,10 +347,11 @@
         else knownDateCols.delete(c);
       });
     }
-    // Toujours reconstruire : les colonnes déjà connues restent proposées
-    // même quand le filtre courant ne renvoie aucun enregistrement.
+    // Always rebuild: already-known columns stay offered
+    // even when the current filter returns no records.
     rebuildColumnSelect();
     if (settingsPanel.classList.contains('open')) refreshAggSection();
+    if (settingsPanel.classList.contains('open')) refreshDiag();
     render();
   });
 
@@ -334,7 +359,7 @@
   initMaxHSlider();
   initAggSection();
 
-  // ── 12. Sélecteur de colonne ──────────────────────────────
+  // ── 12. Column selector ──────────────────────────────
   function rebuildColumnSelect() {
     const prev = groupSelect.value;
     groupSelect.innerHTML = `<option value="">${T.chooseCol}</option>`;
@@ -342,8 +367,8 @@
       const opt = document.createElement('option');
       opt.value = col; opt.textContent = col;
       groupSelect.appendChild(opt);
-      // Colonnes date-like : granularités jour / mois / année en plus
-      // (knownDateCols persiste même quand le fetch courant est vide)
+      // Date-like columns: extra day / month / year granularities
+      // (knownDateCols persists even when the current fetch is empty)
       if (knownDateCols.has(col)) {
         DATE_GRANULARITIES.forEach(g => {
           const o = document.createElement('option');
@@ -388,11 +413,11 @@
     });
   });
 
-  // ── 13. Groupement ────────────────────────────────────────
+  // ── 13. Grouping ────────────────────────────────────────
   function getGroups() {
     if (!groupBy) return [];
     const { col, granularity } = parseGroupBy(groupBy);
-    // Granularité active seulement si la colonne est toujours date-like
+    // Granularity active only if the column is still date-like
     const dateMode = !!granularity && allColumns.includes(col) && isDateLikeColumn(col);
     const map = new Map();
     allRecords.forEach(rec => {
@@ -401,13 +426,13 @@
       if (raw == null || raw === '') {
         key = '\x00__empty__'; label = raw; sortKey = null;
       } else if (dateMode) {
-        // raw = epoch (nombre) ou chaîne ISO → secondes epoch
+        // raw = epoch (number) or ISO string → epoch seconds
         const sec = toEpochSec(raw);
         if (sec == null) {
           key = '\x00__empty__'; label = raw; sortKey = null;
         } else {
           const ms = bucketStartMs(sec, granularity);
-          key     = String(ms);               // la clé porte l'epoch du bucket
+          key     = String(ms);               // the key carries the bucket epoch
           label   = bucketLabel(ms, granularity);
           sortKey = ms;
         }
@@ -424,7 +449,7 @@
     groups.sort((a, b) => {
       if (a.key === '\x00__empty__') return  1;
       if (b.key === '\x00__empty__') return -1;
-      // Tri chronologique (epoch du bucket) quand le groupement est par date
+      // Chronological sort (bucket epoch) when grouping by date
       if (sortMode === 'alpha-asc')  return dateMode
         ? a.sortKey - b.sortKey
         : String(a.label).localeCompare(String(b.label), 'fr');
@@ -438,7 +463,7 @@
     return groups;
   }
 
-  // ── 14. Rendu ─────────────────────────────────────────────
+  // ── 14. Rendering ─────────────────────────────────────────────
   function render() {
     Array.from(content.children).forEach(c => {
       if (c.id !== 'empty-state' && c.id !== 'toast') c.remove();
@@ -446,7 +471,7 @@
 
     if (!groupBy || allRecords.length === 0) {
       emptyState.style.display = '';
-      // Aucune colonne connue (jamais vu de données) : message dédié.
+      // No known column (never saw data): dedicated message.
       const noData = !groupBy && allColumns.length === 0;
       emptyState.querySelector('.empty-title').textContent =
         noData ? T.emptyNoDataTitle
@@ -529,7 +554,7 @@
   }
 
   function buildTable(cols, records, groupLabel) {
-    // Colonne de sélection multiple en premier, colonne d'actions en dernier
+    // Multi-select column first, actions column last
     const thead = '<th class="col-sel"><input type="checkbox" class="sel-cb sel-cb-all"'
                 + ` aria-label="${esc(T.selAll)}"></th>`
                 + cols.map(c =>
@@ -552,8 +577,8 @@
     </table></div>`;
   }
 
-  // Cellule d'actions par ligne : dupliquer ⧉ / supprimer ✕
-  // (toujours visible, atténuée au repos ; pleine opacité au survol / focus).
+  // Per-row actions cell: duplicate ⧉ / delete ✕
+  // (always visible, dimmed at rest; full opacity on hover / focus).
   function rowActionsHtml(rec) {
     const id = esc(String(rec.id));
     return `<button type="button" class="row-act act-dup" data-act="dup" data-id="${id}"`
@@ -562,7 +587,7 @@
          + ` title="${esc(T.delRecord)}" aria-label="${esc(T.delRecord)}">✕</button>`;
   }
 
-  // ── 14b. Actions de ligne : délégation sur #content ───────
+  // ── 14b. Row actions: delegation on #content ───────
   let toastTimer = null;
   function showToast(msg) {
     let toast = document.getElementById('toast');
@@ -599,17 +624,17 @@
       delete fields.id;
       delete fields.manualSort;
       await grist.selectedTable.create({ fields });
-      // Pas de mutation locale : Grist renverra onRecords → re-render.
+      // No local mutation: Grist will send onRecords → re-render.
     } catch (err) {
       showToast(T.actionFailed);
     } finally {
-      // Réactivé si le DOM n'a pas été reconstruit entre-temps.
+      // Re-enabled if the DOM was not rebuilt in the meantime.
       if (btn.isConnected) btn.disabled = false;
     }
   }
 
   async function onDelete(btn, idStr) {
-    // Premier clic : armer (confirmation en 2 temps, auto-désarmement ~4 s).
+    // First click: arm (two-step confirmation, auto-disarm ~4 s).
     if (!armedDeletes.has(idStr)) {
       btn.classList.add('armed');
       btn.textContent = '?';
@@ -618,13 +643,13 @@
       armedDeletes.set(idStr, setTimeout(() => disarmDelete(btn, idStr), 4000));
       return;
     }
-    // Deuxième clic : exécuter.
+    // Second click: execute.
     clearTimeout(armedDeletes.get(idStr));
     armedDeletes.delete(idStr);
     btn.disabled = true;
     try {
       await grist.selectedTable.destroy(Number(idStr));
-      // Pas de mutation locale : Grist renverra onRecords → re-render.
+      // No local mutation: Grist will send onRecords → re-render.
     } catch (err) {
       showToast(T.actionFailed);
       disarmDelete(btn, idStr);
@@ -651,16 +676,16 @@
     if (typeof val === 'number') {
       const isYearLike = Number.isInteger(val) && val >= 1000 && val <= 9999;
       if (isYearLike) return `<span class="cell-num">${val}</span>`;
-      // Entier aligné sur le jour (minuit UTC) dans une colonne date-like
-      // → affichage YYYY-MM-DD plutôt qu'un epoch brut.
+      // Day-aligned integer (midnight UTC) in a date-like column
+      // → render YYYY-MM-DD instead of a raw epoch.
       if (col && Number.isInteger(val) && val % 86400 === 0 && isDateLikeColumn(col))
         return `<span class="cell-num">${new Date(val * 1000).toISOString().slice(0, 10)}</span>`;
       return `<span class="cell-num">${String(val)}</span>`;
     }
     if (Array.isArray(val)) return esc(val.join(', '));
-    // Chaîne ISO 8601 détectée valeur par valeur → "YYYY-MM-DD" (minuit UTC)
-    // ou "YYYY-MM-DD HH:mm" sinon. parseIsoDateSec est strict (regex + plage
-    // 1980–2100), donc aucun risque de reformater du texte ordinaire.
+    // ISO 8601 string detected per value → "YYYY-MM-DD" (midnight UTC)
+    // or "YYYY-MM-DD HH:mm" otherwise. parseIsoDateSec is strict (regex +
+    // 1980–2100 range), so no risk of reformatting ordinary text.
     if (typeof val === 'string') {
       const sec = parseIsoDateSec(val);
       if (sec != null) {
