@@ -130,7 +130,30 @@ Details:
 - ISO-text values render as `YYYY-MM-DD` when the time part is 00:00:00,
   otherwise as `YYYY-MM-DD HH:mm` (UTC). This cell rendering is **per value**:
   any string matching the ISO pattern is formatted even if the column as a
-  whole is not date-like.
+  whole is not date-like. The parser is **tolerant of import artifacts**:
+  zero-width characters (ZWSP/ZWNJ/ZWJ/word joiner/BOM) are stripped and
+  whitespace runs (including non-breaking spaces) are normalized before
+  matching, so strings copied from exports still parse.
+
+## Troubleshooting
+
+- **Dates show as raw ISO text** (`2026-07-16T00:00:00.000Z`): the widget
+  files are versioned (`?v=N` in the HTML) to defeat browser caching — reload
+  the Grist document, or hard-refresh (Ctrl/Cmd+Shift+R). If a specific value
+  still renders raw, it contains a character outside the tolerated set —
+  inspect the raw cell content.
+- **Widget shows all records / ignores the linked selection**: removing and
+  re-adding a custom widget **resets its data selection**. Restore it via the
+  widget's ⋮ menu → *Edit data selection*: source table **ungrouped**, and
+  **Select By** = the linking summary widget.
+- **Aggregate chips / grouping / colors disappeared after re-adding the
+  widget**: display options are persisted per widget instance. Re-create
+  aggregate rules via ⚙ → *Aggregates* → **+ Add**.
+- **Duplicate / delete fails with an error toast**: the widget's access level
+  must be **Full access** (set in the widget's data-selection panel).
+- **Checkboxes render dark**: the widget declares `color-scheme: light` so
+  native controls stay light even in dark-mode browsers; update to the latest
+  `widget.css` if you host your own copy.
 
 ## Hosting
 
