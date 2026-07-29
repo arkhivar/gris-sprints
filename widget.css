@@ -1,6 +1,9 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
+      /* Thème clair déclaré : les cases à cocher natives restent claires
+         même quand le navigateur / l'OS est en mode sombre */
+      color-scheme: light;
       --bg:           #f5f5f4;
       --surface:      #ffffff;
       --border:       #e4e4e2;
