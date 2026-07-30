@@ -65,7 +65,7 @@
       boolFalse: ['✗ false', 'No',    'False', 'false', '0'],
       boolLabels: ['✓ / ✗', 'Yes / No', 'True / False', '● badge', '1 / 0'],
   };
-  const WIDGET_VERSION = '5.1';
+  const WIDGET_VERSION = '5.2';
   const LOCALE = 'en-US';
 
   // ── Dates: Grist sends Date/DateTime as epoch seconds (UTC) ──
@@ -252,9 +252,30 @@
     return sec;
   }
 
-  // Date-like value (epoch number or ISO string) → epoch seconds.
+  // Date-like value → epoch seconds. Besides primitive strings, Grist may
+  // provide cell values through an object wrapper whose String(value) is the
+  // ISO representation. Keep the ISO parser strict so ordinary objects are
+  // never mistaken for dates.
+  function parseDateValueSec(v) {
+    if (typeof v === 'number') return v;
+    if (typeof v === 'string') return parseIsoDateSec(v);
+    if (v != null && typeof v === 'object') {
+      if (v instanceof Date) {
+        const ms = v.getTime();
+        if (!isNaN(ms)) {
+          const sec = ms / 1000;
+          return sec >= DATE_EPOCH_MIN && sec <= DATE_EPOCH_MAX ? sec : null;
+        }
+        return null;
+      }
+      return parseIsoDateSec(String(v));
+    }
+    return null;
+  }
+
+  // Date-like value (epoch number, ISO string, or wrapper) → epoch seconds.
   function toEpochSec(v) {
-    return typeof v === 'number' ? v : parseIsoDateSec(v);
+    return parseDateValueSec(v);
   }
 
   // Render a parsed UTC instant without leaking Grist's transport format
@@ -280,8 +301,8 @@
           dateLikeCache.set(col, false);
           return false;
         }
-      } else if (typeof v === 'string') {
-        if (parseIsoDateSec(v) == null) {
+      } else if (typeof v === 'string' || typeof v === 'object') {
+        if (parseDateValueSec(v) == null) {
           dateLikeCache.set(col, false);
           return false;
         }

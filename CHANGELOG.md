@@ -2,6 +2,12 @@
 
 All notable changes to the grist-sprints grouped-view widget.
 
+## v5.2 — 2026-07-29
+
+- Format ISO dates supplied by Grist as object-wrapped cell values, rather
+  than handling primitive JavaScript strings only.
+- Bumped static asset cache keys to ensure the wrapper-aware formatter loads.
+
 ## v5.1 — 2026-07-29
 
 - Fixed DateTime epoch values with a non-midnight time rendering as raw

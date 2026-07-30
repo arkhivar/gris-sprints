@@ -136,7 +136,8 @@ Details:
   invisible/format characters (zero-width spaces, LRM/RLM, bidi controls,
   soft hyphen, BOM…) are stripped and whitespace runs (including
   non-breaking spaces) are normalized before matching, so strings copied
-  from exports still parse.
+  from exports still parse. ISO values exposed by Grist through object wrappers
+  are normalized through the same strict parser.
 
 ## Troubleshooting
 

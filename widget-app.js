@@ -683,14 +683,10 @@
       return `<span class="cell-num">${String(val)}</span>`;
     }
     if (Array.isArray(val)) return esc(val.join(', '));
-    // ISO 8601 string detected per value → "YYYY-MM-DD" (midnight UTC)
-    // or "YYYY-MM-DD HH:mm" otherwise. parseIsoDateSec is strict (regex +
-    // 1980–2100 range), so no risk of reformatting ordinary text.
-    if (typeof val === 'string') {
-      const sec = parseIsoDateSec(val);
-      if (sec != null) {
-        return `<span class="cell-num">${formatUtcDateSec(sec)}</span>`;
-      }
-    }
+    // Grist can expose ISO values as primitive strings or object wrappers.
+    // The strict parser prevents ordinary objects/text from being reformatted.
+    const sec = parseDateValueSec(val);
+    if (sec != null)
+      return `<span class="cell-num">${formatUtcDateSec(sec)}</span>`;
     return esc(String(val));
   }
