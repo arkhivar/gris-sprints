@@ -1,6 +1,6 @@
 # grist-sprints — Grist grouped-view widget
 
-> Grist custom widget — collapsible grouped view, Airtable/Notion-style. Groups records by any column with fold/unfold, group sorting, automatic group colors, aggregate chips, large Text-field editing, and persisted options via `grist.setOption()`.
+> Grist custom widget — collapsible grouped view, Airtable/Notion-style. Groups records by any column with fold/unfold, group sorting, automatic group colors, aggregate chips, large Text-field editing, DateTime picking, and persisted options via `grist.setOption()`.
 
 Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacoste/grist-widget-grouped-view) with added **aggregates in group headers**. Since v5.0 the interface is **English-only**.
 
@@ -15,6 +15,8 @@ Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacos
 - **Row actions** — duplicate ⧉ and delete ✕ any record inline, always visible (two-step delete, requires **Full access**, see below)
 - **Large text editor** — enable writable Text columns in Settings, then click
   a cell to edit long, multi-line notes and emoji content without leaving the widget
+- **DateTime editor** — click any visible, writable DateTime cell to choose its
+  UTC date and time without finding the record in the source table
 - **Multi-select bulk actions** — tick row checkboxes (or a group's select-all), then duplicate / delete the whole selection from the bottom action bar
 - **Aggregates in group headers** — configurable count / sum / avg / min / max chips per group (see below)
 - **Automatic color per group** using a rotating palette
@@ -34,7 +36,7 @@ Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacos
    https://arkhivar.github.io/grist-sprints/groups.html
    ```
    (The old `widget_groupes.html` URL still works — it redirects to `groups.html`.)
-3. Select access level **Full access** — required for row actions and Text-field
+3. Select access level **Full access** — required for row actions and field
    editing. With a lower level the view still works but write actions fail.
 4. Pick a grouping column in the widget toolbar
 
@@ -70,16 +72,22 @@ rejected and a transient error toast is shown at the top of the widget. After a
 successful action the widget does not patch its own state — Grist pushes fresh
 records and the view re-renders.
 
-## Editing text fields
+## Editing fields
 
-The **Editable text columns** section in Settings lists visible, writable Text
+The **Editable fields** section in Settings lists visible, writable Text
 columns. The `C` column is enabled automatically when it has that type; every
-listed column can be enabled or disabled independently.
+listed Text column can be enabled or disabled independently. Visible, writable
+DateTime columns are enabled automatically.
 
 Click an enabled cell to open a large editor that fills nearly the entire
 widget. It preserves emoji, whitespace, and line breaks and includes a live
 character count. Save with the button or **Ctrl/Cmd+Enter**; cancel with the
-button or **Escape**. Formula columns, non-Text columns, hidden columns, and the
+button or **Escape**. In the grouped table, long Text values always remain on
+one line and are truncated with an ellipsis rather than making the row taller.
+
+Click a DateTime cell to open a native date-and-time picker. Values are edited,
+stored, and displayed in UTC, so the browser's local timezone does not shift
+the chosen time. Formula columns, unsupported types, hidden columns, and the
 active grouping column are not editable. Saving uses
 `grist.selectedTable.update()` and reports failures in Diagnostics.
 

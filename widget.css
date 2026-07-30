@@ -111,7 +111,7 @@
       margin: 0 0 6px; color: var(--muted); font-size: 11px;
     }
 
-    /* Editable Text columns */
+    /* Editable fields */
     .editable-col-list {
       display: flex; flex-wrap: wrap; gap: 6px;
     }
@@ -124,6 +124,11 @@
     }
     .editable-col-option input {
       accent-color: var(--accent); cursor: pointer;
+    }
+    .editable-col-option.automatic { cursor: default; }
+    .editable-col-option.automatic input { cursor: default; }
+    .editable-col-option small {
+      margin-left: 5px; color: var(--muted); font-size: 9px; font-weight: 400;
     }
     .editable-col-empty {
       color: var(--muted); font-size: 11px; font-style: italic;
@@ -326,11 +331,9 @@
       color: inherit; font: inherit; text-align: left; cursor: text; outline: none;
     }
     .cell-edit-value {
-      display: -webkit-box; flex: 1; min-width: 0;
+      display: block; flex: 1; min-width: 0;
       overflow: hidden; text-overflow: ellipsis;
-      white-space: pre-wrap; overflow-wrap: anywhere;
-      -webkit-box-orient: vertical; -webkit-line-clamp: 3;
-      line-clamp: 3;
+      white-space: nowrap;
     }
     .cell-edit-pencil {
       flex: 0 0 auto; color: var(--muted); opacity: .35;
@@ -489,6 +492,33 @@
       tab-size: 2;
     }
     #cell-editor-text:focus { box-shadow: inset 0 0 0 2px rgba(37,99,235,.15); }
+    .cell-editor-datetime {
+      flex: 1;
+      display: flex; flex-direction: column; justify-content: center; gap: 10px;
+      padding: clamp(28px, 8vh, 90px) clamp(24px, 8vw, 110px);
+      background: var(--surface);
+    }
+    .cell-editor-datetime[hidden] { display: none; }
+    .cell-editor-datetime label {
+      color: var(--text); font-size: 14px; font-weight: 600;
+    }
+    #cell-editor-datetime {
+      width: 100%; padding: 14px 16px;
+      border: 1px solid var(--border-strong); border-radius: 7px;
+      background: var(--surface); color: var(--text);
+      font: 18px/1.3 var(--font); outline: none;
+    }
+    #cell-editor-datetime:focus {
+      border-color: var(--accent); box-shadow: var(--focus-ring);
+    }
+    .cell-editor-datetime p {
+      margin: 0; color: var(--muted); font-size: 12px;
+    }
+    .cell-editor-dialog.date-mode {
+      width: min(720px, calc(100vw - 32px));
+      height: auto; min-height: 360px;
+    }
+    .cell-editor-dialog.date-mode #cell-editor-count { visibility: hidden; }
     .cell-editor-footer {
       display: flex; align-items: center; gap: 12px;
       padding: 11px 16px; border-top: 1px solid var(--border);
@@ -511,6 +541,8 @@
         width: 100vw; height: 100vh; min-height: 0; border: 0; border-radius: 0;
       }
       #cell-editor-text { padding: 16px; }
+      .cell-editor-dialog.date-mode { width: 100vw; height: 100vh; min-height: 0; }
+      .cell-editor-datetime { padding: 24px; }
       .cell-editor-footer { flex-wrap: wrap; }
       .cell-editor-shortcut { order: 3; width: 100%; margin-left: 0; }
       .cell-editor-actions { margin-left: auto; }

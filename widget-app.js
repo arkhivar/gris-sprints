@@ -11,9 +11,17 @@
     }
   });
 
-  // ── 7b. Editable Text columns ──────────────────────────────
+  // ── 7b. Editable fields ────────────────────────────────────
+  function columnBaseType(type) {
+    return String(type || '').split(':')[0];
+  }
+
   function isTextColumnType(type) {
-    return String(type || '').split(':')[0] === 'Text';
+    return columnBaseType(type) === 'Text';
+  }
+
+  function isDateTimeColumnType(type) {
+    return columnBaseType(type) === 'DateTime';
   }
 
   function editableTextCandidates() {
@@ -26,6 +34,20 @@
 
   function isEditableTextColumn(col) {
     return editableColumns.has(col) && editableTextCandidates().includes(col);
+  }
+
+  function editableDateTimeCandidates() {
+    const groupCol = parseGroupBy(groupBy).col;
+    return allColumns.filter(col =>
+      col !== groupCol &&
+      writableColumnIds.includes(col) &&
+      isDateTimeColumnType(writableColumnTypes[col]));
+  }
+
+  function editKindForColumn(col) {
+    if (editableDateTimeCandidates().includes(col)) return 'datetime';
+    if (isEditableTextColumn(col)) return 'text';
+    return null;
   }
 
   function saveEditableColumns() {
@@ -54,15 +76,16 @@
       editableColList.appendChild(msg);
       return;
     }
-    const candidates = editableTextCandidates();
-    if (!candidates.length) {
+    const textCandidates = editableTextCandidates();
+    const dateTimeCandidates = editableDateTimeCandidates();
+    if (!textCandidates.length && !dateTimeCandidates.length) {
       const msg = document.createElement('span');
       msg.className = 'editable-col-empty';
       msg.textContent = T.editableNone;
       editableColList.appendChild(msg);
       return;
     }
-    candidates.forEach(col => {
+    textCandidates.forEach(col => {
       const label = document.createElement('label');
       label.className = 'editable-col-option';
       const cb = document.createElement('input');
@@ -77,6 +100,22 @@
       });
       const text = document.createElement('span');
       text.textContent = col;
+      label.appendChild(cb);
+      label.appendChild(text);
+      editableColList.appendChild(label);
+    });
+    dateTimeCandidates.forEach(col => {
+      const label = document.createElement('label');
+      label.className = 'editable-col-option automatic';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = true;
+      cb.disabled = true;
+      const text = document.createElement('span');
+      text.textContent = col;
+      const badge = document.createElement('small');
+      badge.textContent = T.editableAuto;
+      text.appendChild(badge);
       label.appendChild(cb);
       label.appendChild(text);
       editableColList.appendChild(label);
@@ -287,6 +326,13 @@
       ? `editable text: ${[...editableColumns].join(', ')}`
       : 'editable text: none';
     list.appendChild(editable);
+    const editableDateTime = document.createElement('div');
+    editableDateTime.className = 'diag-row';
+    const dateTimeColumns = editableDateTimeCandidates();
+    editableDateTime.textContent = dateTimeColumns.length
+      ? `editable DateTime: ${dateTimeColumns.join(', ')}`
+      : 'editable DateTime: none';
+    list.appendChild(editableDateTime);
     allColumns.forEach(col => {
       const first = allRecords.map(r => r[col]).find(v => v != null && v !== '');
       const row = document.createElement('div');
@@ -339,7 +385,7 @@
   }
 
   // ── 11. Grist ────────────────────────────────────────────
-  // Full access required: row actions and editable Text cells write through
+  // Full access required: row actions and editable fields write through
   // grist.selectedTable.create / update / destroy.
   grist.ready({ requiredAccess: 'full' });
 
@@ -677,13 +723,15 @@
 
   function renderTableCell(rec, col) {
     const rendered = renderCell(rec[col], col);
-    if (!isEditableTextColumn(col))
+    const editKind = editKindForColumn(col);
+    if (!editKind)
       return `<td>${rendered}</td>`;
     const id = esc(String(rec.id));
     const colAttr = esc(col);
+    const editLabel = editKind === 'datetime' ? T.editDateTime : T.editCell;
     return `<td class="cell-editable">`
-      + `<button type="button" class="cell-edit-btn" data-edit-id="${id}" data-edit-col="${colAttr}"`
-      + ` aria-label="${esc(T.editCell)}: ${colAttr}">`
+      + `<button type="button" class="cell-edit-btn" data-edit-id="${id}" data-edit-col="${colAttr}" data-edit-kind="${editKind}"`
+      + ` aria-label="${esc(editLabel)}: ${colAttr}">`
       + `<span class="cell-edit-value">${rendered}</span>`
       + `<span class="cell-edit-pencil" aria-hidden="true">✎</span>`
       + `</button></td>`;
@@ -695,69 +743,127 @@
 
   function setEditorBusy(busy) {
     cellEditorText.disabled = busy;
+    cellEditorDateTime.disabled = busy;
     btnEditorClose.disabled = busy;
     btnEditorCancel.disabled = busy;
     btnEditorSave.disabled = busy;
     btnEditorSave.textContent = busy ? 'Saving…' : T.editSave;
   }
 
-  function openTextEditor(idStr, col) {
-    if (!isEditableTextColumn(col)) return;
+  function formatDateTimeInput(sec) {
+    const date = new Date(Number(sec) * 1000);
+    if (!Number.isFinite(Number(sec)) || Number.isNaN(date.getTime())) return '';
+    return date.toISOString().slice(0, 19);
+  }
+
+  function dateTimeInputSec(value) {
+    if (!value) return null;
+    const milliseconds = Date.parse(`${value}Z`);
+    if (!Number.isFinite(milliseconds))
+      throw new Error('Choose a valid date and time');
+    return milliseconds / 1000;
+  }
+
+  function openFieldEditor(idStr, col) {
+    const kind = editKindForColumn(col);
+    if (!kind) return;
     const recordId = validRecordId(idStr);
     const rec = allRecords.find(r => Number(r.id) === recordId);
     if (!rec) return;
-    const value = rec[col] == null ? '' : String(rec[col]);
-    editingCell = { recordId, col, originalValue: value };
-    cellEditorTitle.textContent = `${T.editTitle} ${col}`;
-    cellEditorMeta.textContent = `${T.editRecord} ${recordId} · ${selectedTableId}`;
+    const isDateTime = kind === 'datetime';
+    const value = isDateTime
+      ? parseDateValueSec(rec[col])
+      : (rec[col] == null ? '' : String(rec[col]));
+    editingCell = { recordId, col, kind, originalValue: value };
+    cellEditorTitle.textContent = `${isDateTime ? T.editDateTime : T.editTitle} — ${col}`;
+    cellEditorMeta.textContent = `${T.editRecord} ${recordId} · ${selectedTableId}`
+      + (isDateTime ? ' · UTC' : '');
     cellEditorText.setAttribute('aria-label', `${T.editTitle} ${col}`);
+    cellEditorDateTime.setAttribute('aria-label', `${T.editDateTime}: ${col}`);
     cellEditorMeta.classList.remove('error');
-    cellEditorText.value = value;
-    updateEditorCharacterCount();
+    cellEditorDialog.classList.toggle('date-mode', isDateTime);
+    cellEditorText.hidden = isDateTime;
+    cellEditorDateTimePanel.hidden = !isDateTime;
+    if (isDateTime) {
+      cellEditorDateTime.value = value == null ? '' : formatDateTimeInput(value);
+      cellEditorCount.textContent = '';
+    } else {
+      cellEditorText.value = value;
+      updateEditorCharacterCount();
+    }
     setEditorBusy(false);
     cellEditor.hidden = false;
     requestAnimationFrame(() => {
-      cellEditorText.focus();
-      cellEditorText.setSelectionRange(value.length, value.length);
+      if (isDateTime) {
+        cellEditorDateTime.focus();
+        if (typeof cellEditorDateTime.showPicker === 'function') {
+          try { cellEditorDateTime.showPicker(); } catch (_) { /* user can open it normally */ }
+        }
+      } else {
+        cellEditorText.focus();
+        cellEditorText.setSelectionRange(value.length, value.length);
+      }
     });
   }
 
-  function closeTextEditor() {
+  function closeFieldEditor() {
     if (btnEditorSave.disabled) return;
     cellEditor.hidden = true;
+    cellEditorDialog.classList.remove('date-mode');
     editingCell = null;
     cellEditorText.value = '';
+    cellEditorText.hidden = false;
+    cellEditorDateTime.value = '';
+    cellEditorDateTimePanel.hidden = true;
   }
 
-  async function saveTextEditor() {
+  async function saveFieldEditor() {
     if (!editingCell || btnEditorSave.disabled) return;
-    const { recordId, col, originalValue } = editingCell;
-    const nextValue = cellEditorText.value;
+    const { recordId, col, kind, originalValue } = editingCell;
+    let nextValue;
+    try {
+      if (kind === 'datetime') {
+        if (!cellEditorDateTime.checkValidity()) {
+          cellEditorDateTime.reportValidity();
+          return;
+        }
+        nextValue = dateTimeInputSec(cellEditorDateTime.value);
+      } else {
+        nextValue = cellEditorText.value;
+      }
+    } catch (err) {
+      cellEditorMeta.textContent = err.message;
+      cellEditorMeta.classList.add('error');
+      cellEditorDateTime.focus();
+      return;
+    }
     if (nextValue === originalValue) {
-      closeTextEditor();
+      closeFieldEditor();
       return;
     }
     setEditorBusy(true);
     cellEditorMeta.classList.remove('error');
-    recordActionDiagnostic('Edit', 'start',
-      `record=${recordId} · column=${col} · characters=${nextValue.length}`);
+    const action = kind === 'datetime' ? 'Edit DateTime' : 'Edit';
+    const detail = kind === 'datetime'
+      ? `record=${recordId} · column=${col} · value=${nextValue == null ? 'empty' : nextValue} UTC`
+      : `record=${recordId} · column=${col} · characters=${nextValue.length}`;
+    recordActionDiagnostic(action, 'start', detail);
     try {
       await grist.selectedTable.update(
         { id: recordId, fields: { [col]: nextValue } },
         { parseStrings: false });
-      recordActionDiagnostic('Edit', 'ok',
-        `record=${recordId} · column=${col} · characters=${nextValue.length}`);
+      recordActionDiagnostic(action, 'ok', detail);
       const current = allRecords.find(r => Number(r.id) === recordId);
       if (current) current[col] = nextValue;
       setEditorBusy(false);
-      closeTextEditor();
+      closeFieldEditor();
       render();
     } catch (err) {
-      const message = actionErrorMessage('Edit', err);
+      const message = actionErrorMessage(action, err);
       cellEditorMeta.textContent = message;
       cellEditorMeta.classList.add('error');
       setEditorBusy(false);
-      cellEditorText.focus();
+      (kind === 'datetime' ? cellEditorDateTime : cellEditorText).focus();
     }
   }
 
@@ -827,7 +933,8 @@
       writableColumnTypes = typeMap;
       recordActionDiagnostic('Metadata', 'ok',
         `table=${tableId} · writable=${writableColumnIds.join(', ')}`
-        + ` · text=${writableColumnIds.filter(col => isTextColumnType(typeMap[col])).join(', ')}`);
+        + ` · text=${writableColumnIds.filter(col => isTextColumnType(typeMap[col])).join(', ')}`
+        + ` · datetime=${writableColumnIds.filter(col => isDateTimeColumnType(typeMap[col])).join(', ')}`);
       return result;
     })();
     try {
@@ -942,22 +1049,24 @@
     }
     const editBtn = e.target.closest('button[data-edit-id][data-edit-col]');
     if (editBtn && content.contains(editBtn) && !editBtn.disabled)
-      openTextEditor(editBtn.dataset.editId, editBtn.dataset.editCol);
+      openFieldEditor(editBtn.dataset.editId, editBtn.dataset.editCol);
   });
 
   cellEditorText.addEventListener('input', updateEditorCharacterCount);
-  cellEditorText.addEventListener('keydown', (e) => {
+  function onEditorKeydown(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault();
-      saveTextEditor();
+      saveFieldEditor();
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      closeTextEditor();
+      closeFieldEditor();
     }
-  });
-  btnEditorClose.addEventListener('click', closeTextEditor);
-  btnEditorCancel.addEventListener('click', closeTextEditor);
-  btnEditorSave.addEventListener('click', saveTextEditor);
+  }
+  cellEditorText.addEventListener('keydown', onEditorKeydown);
+  cellEditorDateTime.addEventListener('keydown', onEditorKeydown);
+  btnEditorClose.addEventListener('click', closeFieldEditor);
+  btnEditorCancel.addEventListener('click', closeFieldEditor);
+  btnEditorSave.addEventListener('click', saveFieldEditor);
 
   function renderCell(val, col) {
     if (val == null || val === '')
