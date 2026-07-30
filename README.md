@@ -146,6 +146,10 @@ Details:
   duplication so Ref/RefList values remain valid IDs rather than decoded
   `RecordStub` objects. Diagnostics also records recent action payload types,
   outcomes, record IDs, table/access context, and complete API errors.
+- Before creating the copy, typed Ref/RefList and Date/DateTime cells are
+  normalized to the writable forms expected by `TableOperations.create`.
+  Group colors use the automatic palette; per-group color customization and
+  its settings section have been removed.
 
 ## Troubleshooting
 

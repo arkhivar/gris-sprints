@@ -2,6 +2,17 @@
 
 All notable changes to the grist-sprints grouped-view widget.
 
+## v5.5 — 2026-07-30
+
+- Normalize typed Grist values before duplication: Ref cells become row IDs,
+  RefLists become Grist lists of row IDs, Date/DateTime cells become epoch
+  seconds, and lookup wrappers are unwrapped recursively.
+- Remove the Group Colors settings UI, saved color options, event handlers,
+  and customization styles; groups retain an automatic visual palette.
+- Expand Diagnostics to use the freed settings space and show typed versus
+  normalized duplicate payload field types.
+- Bumped static asset cache keys so the reference-normalization fix loads.
+
 ## v5.4 — 2026-07-30
 
 - Fetch duplicate payloads with `cellFormat: "typed"` and unexpanded
