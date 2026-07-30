@@ -3,7 +3,7 @@
     const isOpen = settingsPanel.classList.toggle('open');
     btnSettings.classList.toggle('active', isOpen);
     btnSettings.setAttribute('aria-expanded', String(isOpen));
-    if (isOpen) { refreshColorGrid(); refreshBoolSection(); refreshAggSection(); refreshDiag(); }
+    if (isOpen) { refreshBoolSection(); refreshAggSection(); refreshDiag(); }
   });
 
   // ── 8. Boolean formats ────────────────────────────────────
@@ -29,71 +29,6 @@
         render();
       });
       boolRow.appendChild(btn);
-    });
-  }
-
-  // ── 9. Color grid ─────────────────────────────────
-  function refreshColorGrid() {
-    colorGrid.innerHTML = '';
-    const groups = getGroups();
-    if (groups.length === 0) {
-      const msg = document.createElement('p');
-      msg.style.cssText = 'font-size:11px;color:var(--muted);font-style:italic';
-      msg.textContent = T.noGroups;
-      colorGrid.appendChild(msg);
-      return;
-    }
-    groups.forEach((group, i) => {
-      const isEmpty = group.key === '\x00__empty__';
-      const label   = isEmpty ? T.emptyGroup : String(group.label);
-      const color   = colColors[group.key] || DEFAULT_PALETTE[i % DEFAULT_PALETTE.length];
-
-      const row   = document.createElement('div');
-      row.className = 'color-row';
-
-      const wrap   = document.createElement('div');
-      wrap.className = 'color-input-wrap';
-
-      const swatch = document.createElement('span');
-      swatch.className = 'color-swatch';
-      swatch.style.background = color;
-      swatch.setAttribute('aria-hidden', 'true');
-
-      const input = document.createElement('input');
-      input.type  = 'color';
-      input.value = color;
-      input.setAttribute('aria-label', T.colorLabel + ' ' + label);
-      input.addEventListener('input',  () => { swatch.style.background = input.value; });
-      input.addEventListener('change', () => {
-        colColors[group.key] = input.value;
-        swatch.style.background = input.value;
-        saveColors(); render();
-      });
-
-      wrap.appendChild(swatch);
-      wrap.appendChild(input);
-
-      const lbl = document.createElement('span');
-      lbl.className   = 'color-row-label' + (isEmpty ? ' is-empty' : '');
-      lbl.textContent = label;
-
-      const resetBtn = document.createElement('button');
-      resetBtn.type      = 'button';
-      resetBtn.className = 'btn-reset-color';
-      resetBtn.textContent = T.reset;
-      resetBtn.setAttribute('aria-label', T.resetColorLabel + ' ' + label);
-      resetBtn.addEventListener('click', () => {
-        const def = DEFAULT_PALETTE[i % DEFAULT_PALETTE.length];
-        colColors[group.key] = def;
-        input.value = def;
-        swatch.style.background = def;
-        saveColors(); render();
-      });
-
-      row.appendChild(wrap);
-      row.appendChild(lbl);
-      row.appendChild(resetBtn);
-      colorGrid.appendChild(row);
     });
   }
 
@@ -342,9 +277,6 @@
       if (opts.limitMaxH !== undefined)
         limitMaxH = opts.limitMaxH === true || opts.limitMaxH === 'true' || opts.limitMaxH === 1;
       syncMaxHUI();
-      if (opts.colColors) {
-        try { colColors = JSON.parse(opts.colColors); } catch(e) { colColors = {}; }
-      }
       if (opts.aggregates) {
         try {
           const arr = JSON.parse(opts.aggregates);
@@ -417,7 +349,6 @@
     collapsed.clear();
     grist.setOption('groupBy', groupBy);
     render();
-    if (settingsPanel.classList.contains('open')) refreshColorGrid();
   });
 
   sortSelect.addEventListener('change', () => {
@@ -436,45 +367,10 @@
 
   document.getElementById('btn-collapse').addEventListener('click', () => {
     getGroups().forEach(g => collapsed.add(g.key));
-    document.querySelectorAll('.group:not(.collapsed)').forEach(el => {
-      el.classList.add('collapsed');
-      el.querySelector('.group-header').setAttribute('aria-expanded', 'false');
-    });
-  });
-
-  // ── 13. Grouping ────────────────────────────────────────
-  function getGroups() {
-    if (!groupBy) return [];
-    const { col, granularity } = parseGroupBy(groupBy);
-    // Granularity active only if the column is still date-like
-    const dateMode = !!granularity && allColumns.includes(col) && isDateLikeColumn(col);
-    const map = new Map();
-    allRecords.forEach(rec => {
-      const raw = rec[col];
-      let key, label, sortKey;
-      if (raw == null || raw === '') {
-        key = '\x00__empty__'; label = raw; sortKey = null;
-      } else if (dateMode) {
-        // raw = epoch (number) or ISO string → epoch seconds
-        const sec = toEpochSec(raw);
-        if (sec == null) {
-          key = '\x00__empty__'; label = raw; sortKey = null;
-        } else {
-          const ms = bucketStartMs(sec, granularity);
-          key     = String(ms);               // the key carries the bucket epoch
-          label   = bucketLabel(ms, granularity);
-          sortKey = ms;
-        }
-      } else {
-        key = String(raw); label = raw; sortKey = null;
-      }
-      if (!map.has(key)) map.set(key, { key, label, sortKey, records: [] });
+    document.querySelectorAll('.group:�-�G����ƭy�(key, { key, label, sortKey, records: [] });
       map.get(key).records.push(rec);
     });
     const groups = Array.from(map.values());
-    groups.forEach((g, i) => {
-      if (!colColors[g.key]) colColors[g.key] = DEFAULT_PALETTE[i % DEFAULT_PALETTE.length];
-    });
     groups.sort((a, b) => {
       if (a.key === '\x00__empty__') return  1;
       if (b.key === '\x00__empty__') return -1;
@@ -521,10 +417,10 @@
     statGroups.textContent  = groups.length;
     statRecords.textContent = allRecords.length;
 
-    groups.forEach(group => {
+    groups.forEach((group, groupIndex) => {
       const isCollapsed = collapsed.has(group.key);
       const isEmpty     = group.key === '\x00__empty__';
-      const dotColor    = colColors[group.key] || '#94a3b8';
+      const dotColor    = DEFAULT_PALETTE[groupIndex % DEFAULT_PALETTE.length];
       const labelTxt    = isEmpty ? T.emptyGroup : esc(String(group.label));
       const labelCls    = isEmpty ? 'group-label is-empty' : 'group-label';
       const bodyId      = 'grp-' + btoa(encodeURIComponent(group.key)).replace(/[^a-zA-Z0-9]/g, '');
@@ -667,6 +563,18 @@
     }).join(', ');
   }
 
+  function normalizeTypedCell(value) {
+    if (!Array.isArray(value) || typeof value[0] !== 'string') return value;
+    switch (value[0]) {
+      case 'R': return value[2]; // Ref → row ID
+      case 'r': return ['L', ...(Array.isArray(value[2]) ? value[2] : [])]; // RefList
+      case 'D': // DateTime → epoch seconds
+      case 'd': return value[1]; // Date → epoch seconds
+      case 'l': return normalizeTypedCell(value[1]); // Lookup → underlying value
+      default:  return value;
+    }
+  }
+
   function validRecordId(idStr) {
     const id = Number(idStr);
     if (!Number.isInteger(id) || id <= 0)
@@ -714,13 +622,16 @@
     });
     if (!raw) throw new Error(`Record ${recordId} is no longer available`);
     const writable = await getWritableColumnIds();
+    const typedFields = {};
     const fields = {};
     for (const colId of writable) {
-      if (Object.prototype.hasOwnProperty.call(raw, colId))
-        fields[colId] = raw[colId];
+      if (Object.prototype.hasOwnProperty.call(raw, colId)) {
+        typedFields[colId] = raw[colId];
+        fields[colId] = normalizeTypedCell(raw[colId]);
+      }
     }
     recordActionDiagnostic('Duplicate payload', 'ok',
-      `record=${recordId} · ${fieldTypeSummary(fields)}`);
+      `record=${recordId} · typed: ${fieldTypeSummary(typedFields)} · normalized: ${fieldTypeSummary(fields)}`);
     const created = await grist.selectedTable.create({ fields }, { parseStrings: false });
     const createdId = created && created.id != null ? created.id : 'unknown';
     recordActionDiagnostic('Duplicate', 'ok',

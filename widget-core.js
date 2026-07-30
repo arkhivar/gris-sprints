@@ -10,7 +10,6 @@
       sortAlphaDesc:   'Z → A',
       sortCountDesc:   'Count ↓',
       sortCountAsc:    'Count ↑',
-      sectionColors:   'Group colors',
       sectionMaxH:     'Max height per group',
       sectionBool:     'True / false display',
       reset:           'Reset',
@@ -27,8 +26,6 @@
       noOtherCol:      'No other column to display.',
       groupCaption:    'Group:',
       emptyGroup:      '(empty)',
-      colorLabel:      'Color of group',
-      resetColorLabel: 'Reset color of group',
       resetMaxH:       'Reset maximum height',
       boolFormatLabel: 'Boolean format:',
       ariaToolbar:     'Grouping options',
@@ -65,7 +62,7 @@
       boolFalse: ['✗ false', 'No',    'False', 'false', '0'],
       boolLabels: ['✓ / ✗', 'Yes / No', 'True / False', '● badge', '1 / 0'],
   };
-  const WIDGET_VERSION = '5.4';
+  const WIDGET_VERSION = '5.5';
   const LOCALE = 'en-US';
 
   // ── Dates: Grist sends Date/DateTime as epoch seconds (UTC) ──
@@ -117,7 +114,6 @@
   let groupBy    = '';
   let sortMode   = 'alpha-asc';
   let collapsed  = new Set();
-  let colColors  = {};
   let aggregates = [];
   let boolFmtKey = 'check';
   let maxGroupH  = 200;
@@ -139,7 +135,6 @@
   const emptyState    = document.getElementById('empty-state');
   const settingsPanel = document.getElementById('settings-panel');
   const btnSettings   = document.getElementById('btn-settings');
-  const colorGrid     = document.getElementById('color-grid');
   const boolRow       = document.getElementById('bool-row');
   const aggList       = document.getElementById('agg-list');
   const aggFnSelect   = document.getElementById('agg-fn-select');
@@ -161,7 +156,6 @@
     sortOpts[1].textContent = T.sortAlphaDesc;
     sortOpts[2].textContent = T.sortCountDesc;
     sortOpts[3].textContent = T.sortCountAsc;
-    document.getElementById('lbl-colors').textContent            = T.sectionColors;
     document.getElementById('lbl-limitmaxh-txt').textContent     = T.limitMaxH;
     document.getElementById('maxh-range').setAttribute('aria-label', T.sectionMaxH);
     document.getElementById('lbl-bool').textContent              = T.sectionBool;
@@ -213,10 +207,6 @@
 
   function updateStickyTop() {
     // No-op (layout is now fixed, kept for compatibility)
-  }
-
-  function saveColors() {
-    grist.setOption('colColors', JSON.stringify(colColors));
   }
 
   function esc(s) {
