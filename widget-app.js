@@ -378,245 +378,382 @@
           o.value = `${col}::${g}`;
           o.textContent = `${col} â€” ${T[GRAN_I18N_KEY[g]]}`;
           groupSelect.appendChild(o);
-   ã«h‘éì¶»§q«^uˆ
-\™Ù]	‰ˆ˜[Y\Ëš[˜ÛY\Ê\™Ù]
-JHÜ›İ\Ù[Xİ˜[YHH\™Ù]ÂˆB‚ˆÜ›İ\Ù[Xİ˜Y]™[\İ[™\Š	ØÚ[™ÙIË
+        });
+      }
+    });
+    const target = groupBy || prev;
+    const values = Array.from(groupSelect.options).map(o => o.value);
+    if (target && values.includes(target)) groupSelect.value = target;
+  }
 
-HOˆÂˆÜ›İ\HHÜ›İ\Ù[Xİ˜[YNÂˆÛÛ\ÙY˜ÛX\Š
-NÂˆÜš\İœÙ]Ü[ÛŠ	ÙÜ›İ\IËÜ›İ\JNÂˆ™[™\Š
-NÂˆYˆ
-Ù][™ÜÔ[™[˜Û\ÜÓ\İ˜ÛÛZ[œÊ	ÛÜ[‰ÊJH™Yœ™\ÚÛÛÜ‘ÜšY
+  groupSelect.addEventListener('change', () => {
+    groupBy = groupSelect.value;
+    collapsed.clear();
+    grist.setOption('groupBy', groupBy);
+    render();
+    if (settingsPanel.classList.contains('open')) refreshColorGrid();
+  });
 
-NÂˆJNÂ‚ˆÛÜÙ[Xİ˜Y]™[\İ[™\Š	ØÚ[™ÙIË
+  sortSelect.addEventListener('change', () => {
+    sortMode = sortSelect.value;
+    grist.setOption('sortMode', sortMode);
+    render();
+  });
 
-HOˆÂˆÛÜ[ÙHHÛÜÙ[Xİ˜[YNÂˆÜš\İœÙ]Ü[ÛŠ	ÜÛÜ[ÙIËÛÜ[ÙJNÂˆ™[™\Š
-NÂˆJNÂ‚ˆØİ[Y[™Ù][[Y[RY
-	Ø‹Y^[™	ÊK˜Y]™[\İ[™\Š	ØÛXÚÉË
+  document.getElementById('btn-expand').addEventListener('click', () => {
+    collapsed.clear();
+    document.querySelectorAll('.group.collapsed').forEach(el => {
+      el.classList.remove('collapsed');
+      el.querySelector('.group-header').setAttribute('aria-expanded', 'true');
+    });
+  });
 
-HOˆÂˆÛÛ\ÙY˜ÛX\Š
-NÂˆØİ[Y[œ]Y\TÙ[XİÜ[
-	Ë™Ü›İ\˜ÛÛ\ÙY	ÊK™›Ü‘XXÚ
-[OˆÂˆ[˜Û\ÜÓ\İœ™[[İ™J	ØÛÛ\ÙY	ÊNÂˆ[œ]Y\TÙ[XİÜŠ	Ë™Ü›İ\ZXY\‰ÊKœÙ]]šX]J	Ø\šXKY^[™Y	Ë	İYIÊNÂˆJNÂˆJNÂ‚ˆØİ[Y[™Ù][[Y[RY
-	Ø‹XÛÛ\ÙIÊK˜Y]™[\İ[™\Š	ØÛXÚÉË
+  document.getElementById('btn-collapse').addEventListener('click', () => {
+    getGroups().forEach(g => collapsed.add(g.key));
+    document.querySelectorAll('.group:not(.collapsed)').forEach(el => {
+      el.classList.add('collapsed');
+      el.querySelector('.group-header').setAttribute('aria-expanded', 'false');
+    });
+  });
 
-HOˆÂˆÙ]Ü›İ\Ê
-K™›Ü‘XXÚ
-ÈOˆÛÛ\ÙY˜Y
-ËšÙ^JJNÂˆØİ[Y[œ]Y\TÙ[XİÜ[
-	Ë™Ü›İ\››İ
-˜ÛÛ\ÙY
-IÊK™›Ü‘XXÚ
-[OˆÂˆ[˜Û\ÜÓ\İ˜Y
-	ØÛÛ\ÙY	ÊNÂˆ[œ]Y\TÙ[XİÜŠ	Ë™Ü›İ\ZXY\‰ÊKœÙ]]šX]J	Ø\šXKY^[™Y	Ë	Ù˜[ÙIÊNÂˆJNÂˆJNÂ‚ˆËÈ8¥ 8¥ LËˆÜ›İ\[™È8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ ˆ[˜İ[ÛˆÙ]Ü›İ\Ê
-HÂˆYˆ
-YÜ›İ\JH™]\›ˆ×NÂˆÛÛœİÈÛÛÜ˜[[\š]HHH\œÙQÜ›İ\JÜ›İ\JNÂˆËÈÜ˜[[\š]HXİ]™HÛ›HYˆHÛÛ[[ˆ\Èİ[]K[ZÙBˆÛÛœİ]S[ÙHHHYÜ˜[[\š]H	‰ˆ[ÛÛ[[œËš[˜ÛY\ÊÛÛ
-H	‰ˆ\Ñ]SZÙPÛÛ[[ŠÛÛ
-NÂˆÛÛœİX\H™]ÈX\
+  // â”€â”€ 13. Grouping â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  function getGroups() {
+    if (!groupBy) return [];
+    const { col, granularity } = parseGroupBy(groupBy);
+    // Granularity active only if the column is still date-like
+    const dateMode = !!granularity && allColumns.includes(col) && isDateLikeColumn(col);
+    const map = new Map();
+    allRecords.forEach(rec => {
+      const raw = rec[col];
+      let key, label, sortKey;
+      if (raw == null || raw === '') {
+        key = '\x00__empty__'; label = raw; sortKey = null;
+      } else if (dateMode) {
+        // raw = epoch (number) or ISO string â†’ epoch seconds
+        const sec = toEpochSec(raw);
+        if (sec == null) {
+          key = '\x00__empty__'; label = raw; sortKey = null;
+        } else {
+          const ms = bucketStartMs(sec, granularity);
+          key     = String(ms);               // the key carries the bucket epoch
+          label   = bucketLabel(ms, granularity);
+          sortKey = ms;
+        }
+      } else {
+        key = String(raw); label = raw; sortKey = null;
+      }
+      if (!map.has(key)) map.set(key, { key, label, sortKey, records: [] });
+      map.get(key).records.push(rec);
+    });
+    const groups = Array.from(map.values());
+    groups.forEach((g, i) => {
+      if (!colColors[g.key]) colColors[g.key] = DEFAULT_PALETTE[i % DEFAULT_PALETTE.length];
+    });
+    groups.sort((a, b) => {
+      if (a.key === '\x00__empty__') return  1;
+      if (b.key === '\x00__empty__') return -1;
+      // Chronological sort (bucket epoch) when grouping by date
+      if (sortMode === 'alpha-asc')  return dateMode
+        ? a.sortKey - b.sortKey
+        : String(a.label).localeCompare(String(b.label), 'fr');
+      if (sortMode === 'alpha-desc') return dateMode
+        ? b.sortKey - a.sortKey
+        : String(b.label).localeCompare(String(a.label), 'fr');
+      if (sortMode === 'count-desc') return b.records.length - a.records.length;
+      if (sortMode === 'count-asc')  return a.records.length - b.records.length;
+      return 0;
+    });
+    return groups;
+  }
 
-NÂˆ[™XÛÜ™Ë™›Ü‘XXÚ
-™XÈOˆÂˆÛÛœİ˜]ÈH™XÖØÛÛNÂˆ]Ù^KX™[ÛÜÙ^NÂˆYˆ
-˜]ÈOH[˜]ÈOOH	ÉÊHÂˆÙ^HH	××Ù[\W×ÉÎÈX™[H˜]ÎÈÛÜÙ^HH[ÂˆH[ÙHYˆ
-]S[ÙJHÂˆËÈ˜]ÈH\ØÚ
-[X™\ŠHÜˆTÓÈİš[™È8¡¤ˆ\ØÚÙXÛÛ™ÂˆÛÛœİÙXÈHÑ\ØÚÙXÊ˜]ÊNÂˆYˆ
-ÙXÈOH[
-HÂˆÙ^HH	××Ù[\W×ÉÎÈX™[H˜]ÎÈÛÜÙ^HH[ÂˆH[ÙHÂˆÛÛœİ\ÈHXÚÙ]İ\\ÊÙXËÜ˜[[\š]JNÂˆÙ^HHİš[™Ê\ÊNÈËÈHÙ^HØ\œšY\ÈHXÚÙ]\ØÚˆX™[HXÚÙ]X™[
-\ËÜ˜[[\š]JNÂˆÛÜÙ^HH\ÎÂˆBˆH[ÙHÂˆÙ^HHİš[™Ê˜]ÊNÈX™[H˜]ÎÈÛÜÙ^HH[ÂˆBˆYˆ
-[X\š\ÊÙ^JJHX\œÙ]
-Ù^KÈÙ^KX™[ÛÜÙ^K™XÛÜ™Îˆ×HJNÂˆX\™Ù]
-Ù^JKœ™XÛÜ™Ëœ\Ú
-™XÊNÂˆJNÂˆÛÛœİÜ›İ\ÈH\œ˜^K™œ›ÛJX\˜[Y\Ê
-JNÂˆÜ›İ\Ë™›Ü‘XXÚ
+  // â”€â”€ 14. Rendering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  function render() {
+    Array.from(content.children).forEach(c => {
+      if (c.id !== 'empty-state' && c.id !== 'toast') c.remove();
+    });
 
-ËJHOˆÂˆYˆ
-XÛÛÛÛÜœÖÙËšÙ^WJHÛÛÛÛÜœÖÙËšÙ^WHHQUSÔSUVÚH	HQUSÔSUK›[™İNÂˆJNÂˆÜ›İ\ËœÛÜ
+    if (!groupBy || allRecords.length === 0) {
+      emptyState.style.display = '';
+      // No known column (never saw data): dedicated message.
+      const noData = !groupBy && allColumns.length === 0;
+      emptyState.querySelector('.empty-title').textContent =
+        noData ? T.emptyNoDataTitle
+               : (!groupBy ? T.emptyTitle : T.emptyTitleNoRec);
+      emptyState.querySelector('.empty-sub').innerHTML =
+        noData ? T.emptyNoDataSub
+               : (!groupBy ? T.emptySub : T.emptySubNoRec);
+      statsbar.classList.remove('visible');
+      return;
+    }
 
-KŠHOˆÂˆYˆ
-KšÙ^HOOH	××Ù[\W×ÉÊH™]\›ˆNÂˆYˆ
-‹šÙ^HOOH	××Ù[\W×ÉÊH™]\›ˆLNÂˆËÈÚ›Û›ÛÙÚXØ[ÛÜ
-XÚÙ]\ØÚ
-HÚ[ˆÜ›İ\[™ÈH]BˆYˆ
-ÛÜ[ÙHOOH	Ø[KX\ØÉÊH™]\›ˆ]S[ÙBˆÈKœÛÜÙ^HH‹œÛÜÙ^Bˆˆİš[™ÊK›X™[
-K›ØØ[PÛÛ\\™Jİš[™Ê‹›X™[
-K	Ùœ‰ÊNÂˆYˆ
-ÛÜ[ÙHOOH	Ø[KY\ØÉÊH™]\›ˆ]S[ÙBˆÈ‹œÛÜÙ^HHKœÛÜÙ^Bˆˆİš[™Ê‹›X™[
-K›ØØ[PÛÛ\\™Jİš[™ÊK›X™[
-K	Ùœ‰ÊNÂˆYˆ
-ÛÜ[ÙHOOH	ØÛİ[Y\ØÉÊH™]\›ˆ‹œ™XÛÜ™Ë›[™İHKœ™XÛÜ™Ë›[™İÂˆYˆ
-ÛÜ[ÙHOOH	ØÛİ[X\ØÉÊH™]\›ˆKœ™XÛÜ™Ë›[™İH‹œ™XÛÜ™Ë›[™İÂˆ™]\›ˆÂˆJNÂˆ™]\›ˆÜ›İ\ÎÂˆB‚ˆËÈ8¥ 8¥ Mˆ™[™\š[™È8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ ˆ[˜İ[Ûˆ™[™\Š
-HÂˆ\œ˜^K™œ›ÛJÛÛ[˜Ú[™[ŠK™›Ü‘XXÚ
-ÈOˆÂˆYˆ
-ËšYOOH	Ù[\K\İ]IÈ	‰ˆËšYOOH	İØ\İ	ÊHËœ™[[İ™J
-NÂˆJNÂ‚ˆYˆ
-YÜ›İ\H[™XÛÜ™Ë›[™İOOH
-HÂˆ[\Tİ]Kœİ[K™\Ü^HH	ÉÎÂˆËÈ›ÈÛ›İÛˆÛÛ[[ˆ
-™]™\ˆØ]È]JNˆYXØ]YY\ÜØYÙK‚ˆÛÛœİ›Ñ]HHYÜ›İ\H	‰ˆ[ÛÛ[[œË›[™İOOHÂˆ[\Tİ]Kœ]Y\TÙ[XİÜŠ	Ë™[\K]]IÊK^ÛÛ[Bˆ›Ñ]HÈ™[\S›Ñ]U]Bˆˆ
-YÜ›İ\HÈ™[\U]Hˆ™[\U]S›Ô™XÊNÂˆ[\Tİ]Kœ]Y\TÙ[XİÜŠ	Ë™[\K\İX‰ÊKš[›™\’SBˆ›Ñ]HÈ™[\S›Ñ]TİX‚ˆˆ
-YÜ›İ\HÈ™[\TİXˆˆ™[\TİX“›Ô™XÊNÂˆİ]Ø˜\‹˜Û\ÜÓ\İœ™[[İ™J	İš\ÚX›IÊNÂˆ™]\›ÂˆB‚ˆ[\Tİ]Kœİ[K™\Ü^HH	Û›Û™IÎÂˆÛÛœİÜ›İ\ÈHÙ]Ü›İ\Ê
-NÂˆÛÛœİÜ›İ\ÛÛH\œÙQÜ›İ\JÜ›İ\JK˜ÛÛÂˆÛÛœİ\Ü^PÛÛÈH[ÛÛ[[œË™š[\ŠÈOˆÈOOHÜ›İ\ÛÛ
-NÂ‚ˆİ]Ø˜\‹˜Û\ÜÓ\İ˜Y
-	İš\ÚX›IÊNÂˆİ]Ü›İ\Ë^ÛÛ[HÜ›İ\Ë›[™İÂˆİ]™XÛÜ™Ë^ÛÛ[H[™XÛÜ™Ë›[™İÂ‚ˆÜ›İ\Ë™›Ü‘XXÚ
-Ü›İ\OˆÂˆÛÛœİ\ĞÛÛ\ÙYHÛÛ\ÙYš\ÊÜ›İ\šÙ^JNÂˆÛÛœİ\Ñ[\HHÜ›İ\šÙ^HOOH	××Ù[\W×ÉÎÂˆÛÛœİİÛÛÜˆHÛÛÛÛÜœÖÙÜ›İ\šÙ^WH	ÈÎMLØ	ÎÂˆÛÛœİX™[H\Ñ[\HÈ™[\QÜ›İ\ˆ\ØÊİš[™ÊÜ›İ\›X™[
-JNÂˆÛÛœİX™[ÛÈH\Ñ[\HÈ	ÙÜ›İ\[X™[\ËY[\IÈˆ	ÙÜ›İ\[X™[	ÎÂˆÛÛœİ›ÙRYH	ÙÜœIÈ
-ÈØJ[˜ÛÙUT’PÛÛ\Û™[
-Ü›İ\šÙ^JJKœ™\XÙJÖ×˜K^KVŒNWKÙË	ÉÊNÂ‚ˆÛÛœİØ\™HØİ[Y[˜Ü™X]Q[[Y[
-	Ø\XÛIÊNÂˆØ\™˜Û\ÜÓ˜[YHH	ÙÜ›İ\	È
-È
-\ĞÛÛ\ÙYÈ	ÈÛÛ\ÙY	Èˆ	ÉÊNÂ‚ˆÛÛœİXY\ˆHØİ[Y[˜Ü™X]Q[[Y[
-	Ø]Û‰ÊNÂˆXY\‹\HH	Ø]Û‰ÎÂˆXY\‹˜Û\ÜÓ˜[YHH	ÙÜ›İ\ZXY\‰ÎÂˆXY\‹œÙ]]šX]J	Ø\šXKY^[™Y	Ëİš[™ÊZ\ĞÛÛ\ÙY
-JNÂˆXY\‹œÙ]]šX]J	Ø\šXKXÛÛ›ÛÉË›ÙRY
-NÂˆXY\‹š[›™\’SHˆİ™ÈÛ\ÜÏH˜Ú]œ›ÛˆˆšY]Ğ›ŞHŒˆš[H››Û™H‚ˆİ›ÚÙOH˜İ\œ™[ÛÛÜˆˆİ›ÚÙK]ÚYHŒ‹H‚ˆİ›ÚÙK[[™XØ\Hœ›İ[™ˆİ›ÚÙK[[™Z›Ú[Hœ›İ[™‚ˆ\šXKZY[HYHˆ›Øİ\ØX›OH™˜[ÙH‚ˆÛ[[™HÚ[ÏHˆHLˆMHNH‹Ï‚ˆÜİ™Ï‚ˆÜ[ˆÛ\ÜÏH™Ü›İ\Yİˆİ[OH˜˜XÚÙÜ›İ[™‰ÙİÛÛÜŸHˆ\šXKZY[HYHÜÜ[‚ˆÜ[ˆÛ\ÜÏH‰ÛX™[ÛßH‰ÛX™[OÜÜ[‚ˆÜ[ˆÛ\ÜÏH™Ü›İ\X˜YÙH‚ˆ\šXK[X™[H‰ÙÜ›İ\œ™XÛÜ™Ë›[™İWLL	ÙÜ›İ\œ™XÛÜ™Ë›[™İˆHÈœ™XÛÜ™Èˆœ™XÛÜ™H‚ˆ‰ÙÜ›İ\œ™XÛÜ™Ë›[™İOÜÜ[‰ØZ[YÙĞÚ\ÊÜ›İ\œ™XÛÜ™Ê_XÂ‚ˆXY\‹˜Y]™[\İ[™\Š	ØÛXÚÉË
+    emptyState.style.display = 'none';
+    const groups      = getGroups();
+    const groupCol    = parseGroupBy(groupBy).col;
+    const displayCols = allColumns.filter(c => c !== groupCol);
 
-HOˆÂˆYˆ
-ÛÛ\ÙYš\ÊÜ›İ\šÙ^JJHÂˆÛÛ\ÙY™[]JÜ›İ\šÙ^JNÂˆØ\™˜Û\ÜÓ\İœ™[[İ™J	ØÛÛ\ÙY	ÊNÂˆXY\‹œÙ]]šX]J	Ø\šXKY^[™Y	Ë	İYIÊNÂˆH[ÙHÂˆÛÛ\ÙY˜Y
-Ü›İ\šÙ^JNÂˆØ\™˜Û\ÜÓ\İ˜Y
-	ØÛÛ\ÙY	ÊNÂˆXY\‹œÙ]]šX]J	Ø\šXKY^[™Y	Ë	Ù˜[ÙIÊNÂˆBˆJNÂ‚ˆÛÛœİ›ÙHHØİ[Y[˜Ü™X]Q[[Y[
-	Ù]‰ÊNÂˆ›ÙK˜Û\ÜÓ˜[YHH	ÙÜ›İ\X›ÙIÎÂˆ›ÙKšYH›ÙRYÂˆ›ÙKœÙ]]šX]J	Ü›ÛIË	Ü™YÚ[Û‰ÊNÂˆ›ÙKœÙ]]šX]J	Ø\šXK[X™[	Ë˜\šXQÜ›İ\™YÚ[Ûˆ
-ÈX™[
-NÂ‚ˆÛÛœİ[›™\ˆHØİ[Y[˜Ü™X]Q[[Y[
-	Ù]‰ÊNÂˆ[›™\‹˜Û\ÜÓ˜[YHH	ÙÜ›İ\X›ÙKZ[›™\‰ÎÂˆ[›™\‹š[›™\’SH\Ü^PÛÛË›[™İOOHˆÈÛ\ÜÏH›Û›KYÜ›İ\XÛÛ‰Õ››Óİ\ÛÛOÜ˜ˆˆZ[X›J\Ü^PÛÛËÜ›İ\œ™XÛÜ™ËX™[
-NÂ‚ˆ›ÙK˜\[™Ú[
-[›™\ŠNÂˆØ\™˜\[™Ú[
-XY\ŠNÂˆØ\™˜\[™Ú[
-›ÙJNÂˆÛÛ[˜\[™Ú[
-Ø\™
-NÂˆJNÂˆ™Yœ™\Ú›ÛÛÙXİ[ÛŠ
-NÂˆB‚ˆ[˜İ[ÛˆZ[X›JÛÛË™XÛÜ™ËÜ›İ\X™[
-HÂˆËÈ][K\Ù[XİÛÛ[[ˆš\œİXİ[ÛœÈÛÛ[[ˆ\İˆÛÛœİXYH	ÏÛ\ÜÏH˜ÛÛ\Ù[[œ]\OH˜ÚXÚØ›ŞˆÛ\ÜÏHœÙ[XØˆÙ[XØ‹X[‰Âˆ
-È\šXK[X™[H‰Ù\ØÊœÙ[[
-_Hİ˜ˆ
-ÈÛÛË›X\
-ÈO‚ˆØÛÜOH˜ÛÛˆ]OH‰Ù\ØÊÊ_H‰Ù\ØÊÊ_Oİ˜ˆ
-Kš›Ú[Š	ÉÊH
-È	ÏÛ\ÜÏH˜ÛÛXXİ[ÛœÈˆ\šXKZY[HYHİ‰ÎÂˆÛÛœİ›ÙHH™XÛÜ™Ë›X\
-™XÈOˆÂˆÛÛœİYİˆHİš[™Ê™XËšY
-NÂˆÛÛœİÙ[HÙ[XİYYËš\ÊYİŠNÂˆ™]\›ˆ‰ÜÙ[È	ÈÛ\ÜÏHœ›İË\Ù[XİY‰Èˆ	ÉßO˜ˆ
-ÈÛ\ÜÏHœ›İË\Ù[[œ]\OH˜ÚXÚØ›ŞˆÛ\ÜÏHœÙ[XØˆÙ[XØ‹\›İÈ˜ˆ
-È]KZYH‰Ù\ØÊYİŠ_H‰ÜÙ[È	ÈÚXÚÙY	Èˆ	ÉßXˆ
-È\šXK[X™[H‰Ù\ØÊœÙ[[
-_Hİ˜ˆ
-È	ØÛÛË›X\
-ÈOˆ‰Ü™[™\Ù[
-™XÖØ×KÊ_Oİ˜
-Kš›Ú[Š	ÉÊ_Xˆ
-ÈÛ\ÜÏHœ›İËXXİ[ÛœÈ‰Ü›İĞXİ[ÛœÒ[
-™XÊ_Oİİ˜ÂˆJKš›Ú[Š	ÉÊNÂˆ™]\›ˆ]ˆÛ\ÜÏHœØÜ›ÛZ[›™\ˆX›HÛ\ÜÏHœ™XË]X›H‚ˆØ\[Û‰Õ™Ü›İ\Ø\[ÛŸH	Ù\ØÊÜ›İ\X™[
-_OØØ\[Û‚ˆXY‰İXYOİİXY‚ˆ›ÙO‰İ›Ù_Oİ›ÙO‚ˆİX›OÙ]˜ÂˆB‚ˆËÈ\‹\›İÈXİ[ÛœÈÙ[ˆ\XØ]H8©âHÈ[]H8§%BˆËÈ
-[Ø^\Èš\ÚX›K[[YY]™\İÈ[ÜXÚ]HÛˆİ™\ˆÈ›Øİ\ÊK‚ˆ[˜İ[Ûˆ›İĞXİ[ÛœÒ[
-™XÊHÂˆÛÛœİYH\ØÊİš[™Ê™XËšY
-JNÂˆ™]\›ˆ]Ûˆ\OH˜]ÛˆˆÛ\ÜÏHœ›İËXXİXİY\ˆ]KXXİH™\ˆ]KZYH‰ÚYH˜ˆ
-È]OH‰Ù\ØÊ™\™XÛÜ™
-_Hˆ\šXK[X™[H‰Ù\ØÊ™\™XÛÜ™
-_H¸©âOØ]Û˜ˆ
-È]Ûˆ\OH˜]ÛˆˆÛ\ÜÏHœ›İËXXİXİY[ˆ]KXXİH™[ˆ]KZYH‰ÚYH˜ˆ
-È]OH‰Ù\ØÊ™[™XÛÜ™
-_Hˆ\šXK[X™[H‰Ù\ØÊ™[™XÛÜ™
-_H¸§%OØ]Û˜ÂˆB‚ˆËÈ8¥ 8¥ M‹ˆ›İÈXİ[ÛœÎˆ[YØ][ÛˆÛˆØÛÛ[8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ ˆ]Ø\İ[Y\ˆH[Âˆ[˜İ[ÛˆÚİÕØ\İ
-\ÙÊHÂˆ]Ø\İHØİ[Y[™Ù][[Y[RY
-	İØ\İ	ÊNÂˆYˆ
-]Ø\İ
-HÂˆØ\İHØİ[Y[˜Ü™X]Q[[Y[
-	Ù]‰ÊNÂˆØ\İšYH	İØ\İ	ÎÂˆØ\İ˜Û\ÜÓ˜[YHH	İØ\İ	ÎÂˆØ\İœÙ]]šX]J	Ü›ÛIË	Ø[\	ÊNÂˆÛÛ[œ™\[™
-Ø\İ
-NÂˆBˆØ\İ^ÛÛ[H\ÙÎÂˆØ\İ˜Û\ÜÓ\İ˜Y
-	İš\ÚX›IÊNÂˆÛX\•[Y[İ]
-Ø\İ[Y\ŠNÂˆØ\İ[Y\ˆHÙ][Y[İ]
+    statsbar.classList.add('visible');
+    statGroups.textContent  = groups.length;
+    statRecords.textContent = allRecords.length;
 
+    groups.forEach(group => {
+      const isCollapsed = collapsed.has(group.key);
+      const isEmpty     = group.key === '\x00__empty__';
+      const dotColor    = colColors[group.key] || '#94a3b8';
+      const labelTxt    = isEmpty ? T.emptyGroup : esc(String(group.label));
+      const labelCls    = isEmpty ? 'group-label is-empty' : 'group-label';
+      const bodyId      = 'grp-' + btoa(encodeURIComponent(group.key)).replace(/[^a-zA-Z0-9]/g, '');
 
-HOˆØ\İ˜Û\ÜÓ\İœ™[[İ™J	İš\ÚX›IÊK
-NÂˆB‚ˆ[˜İ[ÛˆXİ[Û‘\œ›Ü“Y\ÜØYÙJXİ[Û‹\œŠHÂˆÛÛœÛÛK™\œ›ÜŠÜš\İ	ØXİ[ÛŸH˜Z[Y\œŠNÂˆÛÛœİ]Z[H\œˆ	‰ˆ\œ‹›Y\ÜØYÙHÈ\œ‹›Y\ÜØYÙHˆİš[™Ê\œˆ	Õ[šÛ›İÛˆ\œ›Ü‰ÊNÂˆÛÛœİXØÙ\ÜÒ[HÜ˜[YXØÙ\ÜÓ]™[OOH	Ù[	ÂˆÈ
-Ü˜[YXØÙ\ÜÎˆ	ÙÜ˜[YXØÙ\ÜÓ]™[JXˆˆ	ÉÎÂˆ™]\›ˆ	ØXİ[ÛŸH˜Z[Y	ØXØÙ\ÜÒ[Nˆ	Ù]Z[XœÛXÙJ
-NÂˆB‚ˆ[˜İ[Ûˆ˜[Y™XÛÜ™Y
-YİŠHÂˆÛÛœİYH[X™\ŠYİŠNÂˆYˆ
-S[X™\‹š\Ò[YÙ\ŠY
-HYH
-Bˆ›İÈ™]È\œ›ÜŠ[˜[Y™XÛÜ™Yˆ	ÚYİŸX
-NÂˆ™]\›ˆYÂˆB‚ˆ\Ş[˜È[˜İ[ÛˆÙ]Üš]X›PÛÛ[[’YÊ
-HÂˆYˆ
-Üš]X›PÛÛ[[’YÔ›ÛZ\ÙJH™]\›ˆÜš]X›PÛÛ[[’YÔ›ÛZ\ÙNÂˆÜš]X›PÛÛ[[’YÔ›ÛZ\ÙHH
-\Ş[˜È
+      const card = document.createElement('article');
+      card.className = 'group' + (isCollapsed ? ' collapsed' : '');
 
-HOˆÂˆÛÛœİX›RYH]ØZ]Üš\İœÙ[XİYX›K™Ù]X›RY
+      const header = document.createElement('button');
+      header.type = 'button';
+      header.className = 'group-header';
+      header.setAttribute('aria-expanded', String(!isCollapsed));
+      header.setAttribute('aria-controls', bodyId);
+      header.innerHTML = `
+        <svg class="chevron" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true" focusable="false">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+        <span class="group-dot" style="background:${dotColor}" aria-hidden="true"></span>
+        <span class="${labelCls}">${labelTxt}</span>
+        <span class="group-badge"
+              aria-label="${group.records.length}\u00a0${group.records.length > 1 ? T.records : T.record}"
+        >${group.records.length}</span>${buildAggChips(group.records)}`;
 
-NÂˆÛÛœİX›\ÈH]ØZ]Üš\İ™ØĞ\K™™]ÚX›J	×ÙÜš\İÕX›\ÉÊNÂˆÛÛœİX›R[™^H
-X›\ËX›RY×JKš[™^ÙŠX›RY
-NÂˆYˆ
-X›R[™^
-H›İÈ™]È\œ›ÜŠX›HY]Y]H›İ›İ[™›Üˆ	İX›RYX
-NÂˆÛÛœİX›T™YˆHX›\ËšYİX›R[™^NÂˆÛÛœİÛÛ[[œÈH]ØZ]Üš\İ™ØĞ\K™™]ÚX›J	×ÙÜš\İÕX›\×ØÛÛ[[‰ÊNÂˆÛÛœİ™\İ[H™]ÈÙ]
+      header.addEventListener('click', () => {
+        if (collapsed.has(group.key)) {
+          collapsed.delete(group.key);
+          card.classList.remove('collapsed');
+          header.setAttribute('aria-expanded', 'true');
+        } else {
+          collapsed.add(group.key);
+          card.classList.add('collapsed');
+          header.setAttribute('aria-expanded', 'false');
+        }
+      });
 
-NÂˆ›Üˆ
-]HHÈH
-ÛÛ[[œËšY×JK›[™İÈJÊÊHÂˆÛÛœİÛÛYHÛÛ[[œË˜ÛÛYÚWNÂˆYˆ
-ÛÛ[[œËœ\™[YÚWHOOHX›T™YˆÛÛ[[œËš\Ñ›Ü›][VÚWJHÛÛ[YNÂˆYˆ
-XÛÛYÛÛYOOH	ÛX[X[ÛÜ	ÈÛÛYœİ\ÕÚ]
-	ÙÜš\İ[\—ÉÊJHÛÛ[YNÂˆ™\İ[˜Y
-ÛÛY
-NÂˆBˆ™]\›ˆ™\İ[ÂˆJJ
-NÂˆHÂˆ™]\›ˆ]ØZ]Üš]X›PÛÛ[[’YÔ›ÛZ\ÙNÂˆHØ]Ú
-\œŠHÂˆÜš]X›PÛÛ[[’YÔ›ÛZ\ÙHH[Âˆ›İÈ\œÂˆBˆB‚ˆ\Ş[˜È[˜İ[Ûˆ\XØ]T™XÛÜ™RY
-YİŠHÂˆÛÛœİ™XÛÜ™YH˜[Y™XÛÜ™Y
-YİŠNÂˆÛÛœİ˜]ÈH]ØZ]Üš\İšY]Ğ\K™™]ÚÙ[XİY™XÛÜ™
-™XÛÜ™YÂˆÙY\[˜ÛÙYˆYKˆ^[™™YœÎˆ˜[ÙKˆ[˜ÛYPÛÛ[[œÎˆ	Û›Ü›X[	ËˆJNÂˆYˆ
-\˜]ÊH›İÈ™]È\œ›ÜŠ™XÛÜ™	Ü™XÛÜ™YH\È›ÈÛ™Ù\ˆ]˜Z[X›X
-NÂˆÛÛœİÜš]X›HH]ØZ]Ù]Üš]X›PÛÛ[[’YÊ
-NÂˆÛÛœİšY[ÈHßNÂˆ›Üˆ
-ÛÛœİÛÛYÙˆÜš]X›JHÂˆYˆ
-Øš™Xİœ›İİ\Kš\ÓİÛ”›Ü\K˜Ø[
-˜]ËÛÛY
-JBˆšY[ÖØÛÛYHH˜]ÖØÛÛYNÂˆBˆ]ØZ]Üš\İœÙ[XİYX›K˜Ü™X]JÈšY[ÈKÈ\œÙTİš[™ÜÎˆ˜[ÙHJNÂˆB‚ˆ\Ş[˜È[˜İ[Ûˆ[]T™XÛÜ™ĞRYÊYİš[™ÜÊHÂˆÛÛœİ™XÛÜ™YÈHYİš[™ÜË›X\
-˜[Y™XÛÜ™Y
-NÂˆYˆ
-™XÛÜ™YË›[™İOOH
-H™]\›ÂˆËÈ\ÜÈ[ˆ\œ˜^H]™[ˆ›ÜˆÛ™H™XÛÜ™ˆ\È]›ÚYÈÛ\ˆX›SÜ\˜][ÛœÂˆËÈ[\[Y[][ÛœÈ™Z™Xİ[™ÈHÚ[™ÛK\™XÛÜ™™\ÜÛœÙHY\ˆ[][Û‹‚ˆ]ØZ]Üš\İœÙ[XİYX›K™\İ›ŞJ™XÛÜ™YÊNÂˆB‚ˆ[˜İ[Ûˆ\Ø\›Q[]J‹YİŠHÂˆÛX\•[Y[İ]
-\›YY[]\Ë™Ù]
-YİŠJNÂˆ\›YY[]\Ë™[]JYİŠNÂˆYˆ
-ˆ	‰ˆ‹š\ĞÛÛ›™XİY
-HÂˆ‹˜Û\ÜÓ\İœ™[[İ™J	Ø\›YY	ÊNÂˆ‹^ÛÛ[H	ø§%IÎÂˆ‹]HH™[™XÛÜ™Âˆ‹œÙ]]šX]J	Ø\šXK[X™[	Ë™[™XÛÜ™
-NÂˆBˆB‚ˆ\Ş[˜È[˜İ[ÛˆÛ‘\XØ]J‹YİŠHÂˆÛÛœİ™XÈH[™XÛÜ™Ë™š[™
-ˆOˆİš[™Ê‹šY
-HOOHYİŠNÂˆYˆ
-\™XÊH™]\›Âˆ‹™\ØX›YHYNÂˆHÂˆ]ØZ]\XØ]T™XÛÜ™RY
-YİŠNÂˆËÈ›ÈØØ[]]][ÛˆÜš\İÚ[Ù[™Û”™XÛÜ™È8¡¤ˆ™K\™[™\‹‚ˆHØ]Ú
-\œŠHÂˆÚİÕØ\İ
-Xİ[Û‘\œ›Ü“Y\ÜØYÙJ	Ñ\XØ]IË\œŠJNÂˆHš[˜[HÂˆËÈ™KY[˜X›YYˆHÓHØ\È›İ™XZ[[ˆHYX[[YK‚ˆYˆ
-‹š\ĞÛÛ›™XİY
-H‹™\ØX›YH˜[ÙNÂˆBˆB‚ˆ\Ş[˜È[˜İ[ÛˆÛ‘[]J‹YİŠHÂˆËÈš\œİÛXÚÎˆ\›H
-ÛË\İ\ÛÛ™š\›X][Û‹]]ËY\Ø\›HÊK‚ˆYˆ
-X\›YY[]\Ëš\ÊYİŠJHÂˆ‹˜Û\ÜÓ\İ˜Y
-	Ø\›YY	ÊNÂˆ‹^ÛÛ[H	ÏÉÎÂˆ‹]HH˜ÛÛ™š\›Q[Âˆ‹œÙ]]šX]J	Ø\šXK[X™[	Ë˜ÛÛ™š\›Q[
-NÂˆ\›YY[]\ËœÙ]
-Yİ‹Ù][Y[İ]
+      const body = document.createElement('div');
+      body.className = 'group-body';
+      body.id = bodyId;
+      body.setAttribute('role', 'region');
+      body.setAttribute('aria-label', T.ariaGroupRegion + labelTxt);
 
+      const inner = document.createElement('div');
+      inner.className = 'group-body-inner';
+      inner.innerHTML = displayCols.length === 0
+        ? `<p class="only-group-col">${T.noOtherCol}</p>`
+        : buildTable(displayCols, group.records, labelTxt);
 
-HOˆ\Ø\›Q[]J‹YİŠK
-JNÂˆ™]\›ÂˆBˆËÈÙXÛÛ™ÛXÚÎˆ^Xİ]K‚ˆÛX\•[Y[İ]
-\›YY[]\Ë™Ù]
-YİŠJNÂˆ\›YY[]\Ë™[]JYİŠNÂˆ‹™\ØX›YHYNÂˆHÂˆ]ØZ][]T™XÛÜ™ĞRYÊÚYİ—JNÂˆËÈ›ÈØØ[]]][ÛˆÜš\İÚ[Ù[™Û”™XÛÜ™È8¡¤ˆ™K\™[™\‹‚ˆHØ]Ú
-\œŠHÂˆÚİÕØ\İ
-Xİ[Û‘\œ›Ü“Y\ÜØYÙJ	Ñ[]IË\œŠJNÂˆ\Ø\›Q[]J‹YİŠNÂˆHš[˜[HÂˆYˆ
-‹š\ĞÛÛ›™XİY
-H‹™\ØX›YH˜[ÙNÂˆBˆB‚ˆÛÛ[˜Y]™[\İ[™\Š	ØÛXÚÉË
-JHOˆÂˆÛÛœİˆHK\™Ù]˜ÛÜÙ\İ
-	Ø]Û–Ù]KXXİIÊNÂˆYˆ
-XˆXÛÛ[˜ÛÛZ[œÊŠH‹™\ØX›Y
-H™]\›ÂˆÛÛœİYİˆH‹™]\Ù]šYÂˆYˆ
-‹™]\Ù]˜XİOOH	Ù\	ÊHÛ‘\XØ]J‹YİŠNÂˆ[ÙHYˆ
-‹™]\Ù]˜XİOOH	Ù[	ÊHÛ‘[]J‹YİŠNÂˆJNÂ‚ˆ[˜İ[Ûˆ™[™\Ù[
-˜[ÛÛ
-HÂˆYˆ
-˜[OH[˜[OOH	ÉÊBˆ™]\›ˆÜ[ˆÛ\ÜÏH˜Ù[[[ˆ\šXK[X™[H‰Õ˜Ù[[\_H¸ %ÜÜ[˜ÂˆYˆ
-˜[OOHYH˜[OOH˜[ÙJHÂˆÛÛœİ›]H“ÓÓÑ“Ô“PUË™š[™
-ˆOˆ‹šÙ^HOOH›ÛÛ›]Ù^JH“ÓÓÑ“Ô“PUÖÌNÂˆ™]\›ˆ˜[È›]ˆ›]™ÂˆBˆYˆ
-\[Ùˆ˜[OOH	Û[X™\‰ÊHÂˆÛÛœİ\ÖYX\“ZÙHH[X™\‹š\Ò[YÙ\Š˜[
-H	‰ˆ˜[HL	‰ˆ˜[HNNNNÂˆYˆ
-\ÖYX\“ZÙJH™]\›ˆÜ[ˆÛ\ÜÏH˜Ù[[[H‰İ˜[OÜÜ[˜ÂˆËÈÜš\İ]H[™]U[YHÛÛ[[œÈ›İ\œš]™H\È\ØÚÙXÛÛ™Ëˆ›Ü›X]ˆËÈ]™\H˜[YH[ˆH]XİY]HÛÛ[[‹›İÛ›HZYšYÚX[YÛ™Y]\Ë‚ˆYˆ
-ÛÛ	‰ˆ\Ñ]SZÙPÛÛ[[ŠÛÛ
-JBˆ™]\›ˆÜ[ˆÛ\ÜÏH˜Ù[[[H‰Ù›Ü›X]]Ñ]TÙXÊ˜[
-_OÜÜ[˜Âˆ™]\›ˆÜ[ˆÛ\ÜÏH˜Ù[[[H‰Ôİš[™Ê˜[
-_OÜÜ[˜ÂˆBˆYˆ
-\œ˜^Kš\Ğ\œ˜^J˜[
-JH™]\›ˆ\ØÊ˜[š›Ú[Š	Ë	ÊJNÂˆËÈÜš\İØ[ˆ^ÜÙHTÓÈ˜[Y\È\Èš[Z]]™Hİš[™ÜÈÜˆØš™XİÜ˜\\œË‚ˆËÈHİšXİ\œÙ\ˆ™]™[ÈÜ™[˜\HØš™XİËİ^œ›ÛH™Z[™È™Y›Ü›X]Y‚ˆÛÛœİÙXÈH\œÙQ]U˜[YTÙXÊ˜[
-NÂˆYˆ
-ÙXÈOH[
-Bˆ™]\›ˆÜ[ˆÛ\ÜÏH˜Ù[[[H‰Ù›Ü›X]]Ñ]TÙXÊÙXÊ_OÜÜ[˜Âˆ™]\›ˆ\ØÊİš[™Ê˜[
-JNÂˆB
+      body.appendChild(inner);
+      card.appendChild(header);
+      card.appendChild(body);
+      content.appendChild(card);
+    });
+    refreshBoolSection();
+  }
+
+  function buildTable(cols, records, groupLabel) {
+    // Multi-select column first, actions column last
+    const thead = '<th class="col-sel"><input type="checkbox" class="sel-cb sel-cb-all"'
+                + ` aria-label="${esc(T.selAll)}"></th>`
+                + cols.map(c =>
+      `<th scope="col" title="${esc(c)}">${esc(c)}</th>`
+    ).join('') + '<th class="col-actions" aria-hidden="true"></th>';
+    const tbody = records.map(rec => {
+      const idStr = String(rec.id);
+      const sel   = selectedIds.has(idStr);
+      return `<tr${sel ? ' class="row-selected"' : ''}>`
+      + `<td class="row-sel"><input type="checkbox" class="sel-cb sel-cb-row"`
+      + ` data-id="${esc(idStr)}"${sel ? ' checked' : ''}`
+      + ` aria-label="${esc(T.selAll)}"></td>`
+      + `${cols.map(c => `<td>${renderCell(rec[c], c)}</td>`).join('')}`
+      + `<td class="row-actions">${rowActionsHtml(rec)}</td></tr>`;
+    }).join('');
+    return `<div class="scroll-inner"><table class="rec-table">
+      <caption>${T.groupCaption} ${esc(groupLabel)}</caption>
+      <thead><tr>${thead}</tr></thead>
+      <tbody>${tbody}</tbody>
+    </table></div>`;
+  }
+
+  // Per-row actions cell: duplicate â§‰ / delete âœ•
+  // (always visible, dimmed at rest; full opacity on hover / focus).
+  function rowActionsHtml(rec) {
+    const id = esc(String(rec.id));
+    return `<button type="button" class="row-act act-dup" data-act="dup" data-id="${id}"`
+         + ` title="${esc(T.dupRecord)}" aria-label="${esc(T.dupRecord)}">â§‰</button>`
+         + `<button type="button" class="row-act act-del" data-act="del" data-id="${id}"`
+         + ` title="${esc(T.delRecord)}" aria-label="${esc(T.delRecord)}">âœ•</button>`;
+  }
+
+  // â”€â”€ 14b. Row actions: delegation on #content â”€â”€â”€â”€â”€â”€â”€
+  let toastTimer = null;
+  function showToast(msg) {
+    let toast = document.getElementById('toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'toast';
+      toast.className = 'toast';
+      toast.setAttribute('role', 'alert');
+      content.prepend(toast);
+    }
+    toast.textContent = msg;
+    toast.classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('visible'), 4000);
+  }
+
+  function actionErrorMessage(action, err) {
+    console.error(`Grist ${action} failed`, err);
+    const detail = err && err.message ? err.message : String(err || 'Unknown error');
+    const accessHint = grantedAccessLevel !== 'full'
+      ? ` (granted access: ${grantedAccessLevel})`
+      : '';
+    return `${action} failed${accessHint}: ${detail}`.slice(0, 240);
+  }
+
+  function validRecordId(idStr) {
+    const id = Number(idStr);
+    if (!Number.isInteger(id) || id <= 0)
+      throw new Error(`Invalid record id: ${idStr}`);
+    return id;
+  }
+
+  async function getWritableColumnIds() {
+    if (writableColumnIdsPromise) return writableColumnIdsPromise;
+    writableColumnIdsPromise = (async () => {
+      const tableId = await grist.selectedTable.getTableId();
+      const tables = await grist.docApi.fetchTable('_grist_Tables');
+      const tableIndex = (tables.tableId || []).indexOf(tableId);
+      if (tableIndex < 0) throw new Error(`Table metadata not found for ${tableId}`);
+      const tableRef = tables.id[tableIndex];
+      const columns = await grist.docApi.fetchTable('_grist_Tables_column');
+      const result = new Set();
+      for (let i = 0; i < (columns.id || []).length; i++) {
+        const colId = columns.colId[i];
+        if (columns.parentId[i] !== tableRef || columns.isFormula[i]) continue;
+        if (!colId || colId === 'manualSort' || colId.startsWith('gristHelper_')) continue;
+        result.add(colId);
+      }
+      return result;
+    })();
+    try {
+      return await writableColumnIdsPromise;
+    } catch (err) {
+      writableColumnIdsPromise = null;
+      throw err;
+    }
+  }
+
+  async function duplicateRecordById(idStr) {
+    const recordId = validRecordId(idStr);
+    const raw = await grist.viewApi.fetchSelectedRecord(recordId, {
+      keepEncoded: true,
+      expandRefs: false,
+      includeColumns: 'normal',
+    });
+    if (!raw) throw new Error(`Record ${recordId} is no longer available`);
+    const writable = await getWritableColumnIds();
+    const fields = {};
+    for (const colId of writable) {
+      if (Object.prototype.hasOwnProperty.call(raw, colId))
+        fields[colId] = raw[colId];
+    }
+    await grist.selectedTable.create({ fields }, { parseStrings: false });
+  }
+
+  async function deleteRecordsByIds(idStrings) {
+    const recordIds = idStrings.map(validRecordId);
+    if (recordIds.length === 0) return;
+    // Pass an array even for one record. This avoids older TableOperations
+    // implementations rejecting the single-record response after deletion.
+    await grist.selectedTable.destroy(recordIds);
+  }
+
+  function disarmDelete(btn, idStr) {
+    clearTimeout(armedDeletes.get(idStr));
+    armedDeletes.delete(idStr);
+    if (btn && btn.isConnected) {
+      btn.classList.remove('armed');
+      btn.textContent = 'âœ•';
+      btn.title = T.delRecord;
+      btn.setAttribute('aria-label', T.delRecord);
+    }
+  }
+
+  async function onDuplicate(btn, idStr) {
+    const rec = allRecords.find(r => String(r.id) === idStr);
+    if (!rec) return;
+    btn.disabled = true;
+    try {
+      await duplicateRecordById(idStr);
+      // No local mutation: Grist will send onRecords â†’ re-render.
+    } catch (err) {
+      showToast(actionErrorMessage('Duplicate', err));
+    } finally {
+      // Re-enabled if the DOM was not rebuilt in the meantime.
+      if (btn.isConnected) btn.disabled = false;
+    }
+  }
+
+  async function onDelete(btn, idStr) {
+    // First click: arm (two-step confirmation, auto-disarm ~4 s).
+    if (!armedDeletes.has(idStr)) {
+      btn.classList.add('armed');
+      btn.textContent = '?';
+      btn.title = T.confirmDel;
+      btn.setAttribute('aria-label', T.confirmDel);
+      armedDeletes.set(idStr, setTimeout(() => disarmDelete(btn, idStr), 4000));
+      return;
+    }
+    // Second click: execute.
+    clearTimeout(armedDeletes.get(idStr));
+    armedDeletes.delete(idStr);
+    btn.disabled = true;
+    try {
+      await deleteRecordsByIds([idStr]);
+      // No local mutation: Grist will send onRecords â†’ re-render.
+    } catch (err) {
+      showToast(actionErrorMessage('Delete', err));
+      disarmDelete(btn, idStr);
+    } finally {
+      if (btn.isConnected) btn.disabled = false;
+    }
+  }
+
+  content.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-act]');
+    if (!btn || !content.contains(btn) || btn.disabled) return;
+    const idStr = btn.dataset.id;
+    if (btn.dataset.act === 'dup') onDuplicate(btn, idStr);
+    else if (btn.dataset.act === 'del') onDelete(btn, idStr);
+  });
+
+  function renderCell(val, col) {
+    if (val == null || val === '')
+      return `<span class="cell-null" aria-label="${T.cellEmpty}">â€”</span>`;
+    if (val === true || val === false) {
+      const fmt = BOOL_FORMATS.find(f => f.key === boolFmtKey) || BOOL_FORMATS[0];
+      return val ? fmt.t : fmt.f;
+    }
+    if (typeof val === 'number') {
+      const isYearLike = Number.isInteger(val) && val >= 1000 && val <= 9999;
+      if (isYearLike) return `<span class="cell-num">${val}</span>`;
+      // Grist Date and DateTime columns both arrive as epoch seconds. Format
+      // every value in a detected date column, not only midnight-aligned dates.
+      if (col && isDateLikeColumn(col))
+        return `<span class="cell-num">${formatUtcDateSec(val)}</span>`;
+      return `<span class="cell-num">${String(val)}</span>`;
+    }
+    if (Array.isArray(val)) return esc(val.join(', '));
+    // Grist can expose ISO values as primitive strings or object wrappers.
+    // The strict parser prevents ordinary objects/text from being reformatted.
+    const sec = parseDateValueSec(val);
+    if (sec != null)
+      return `<span class="cell-num">${formatUtcDateSec(sec)}</span>`;
+    return esc(String(val));
+  }
