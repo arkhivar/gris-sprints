@@ -1,6 +1,6 @@
 # grist-sprints — Grist grouped-view widget
 
-> Grist custom widget — collapsible grouped view, Airtable/Notion-style. Groups records by any column with fold/unfold, group sorting, per-group colors, aggregate chips in group headers, and persisted options via `grist.setOption()`.
+> Grist custom widget — collapsible grouped view, Airtable/Notion-style. Groups records by any column with fold/unfold, group sorting, automatic group colors, aggregate chips, large Text-field editing, and persisted options via `grist.setOption()`.
 
 Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacoste/grist-widget-grouped-view) with added **aggregates in group headers**. Since v5.0 the interface is **English-only**.
 
@@ -13,13 +13,16 @@ Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacos
 - **Fold / unfold** each group by clicking its header; **expand all / collapse all** in one click
 - **Group sort**: alphabetical A→Z or Z→A, by record count ascending or descending
 - **Row actions** — duplicate ⧉ and delete ✕ any record inline, always visible (two-step delete, requires **Full access**, see below)
+- **Large text editor** — enable writable Text columns in Settings, then click
+  a cell to edit long, multi-line notes and emoji content without leaving the widget
 - **Multi-select bulk actions** — tick row checkboxes (or a group's select-all), then duplicate / delete the whole selection from the bottom action bar
 - **Aggregates in group headers** — configurable count / sum / avg / min / max chips per group (see below)
-- **Stable color per group** (rotating palette) with per-group color picker
+- **Automatic color per group** using a rotating palette
 - **Null values** collected in an *(empty)* group, sorted last
 - **Cell formatting**: booleans ✓/✗ (several display styles), plain numbers (no thousand separators — `-1425`, not `-1,425`), ISO dates, arrays
 - **Unlimited group height by default** — uncollapsed groups show all their rows and the page scrolls; an optional per-group height cap can be enabled in settings (see below)
-- **Persisted options** via `grist.setOption()` — grouping column, sort order, colors, height cap, and aggregate rules all survive page reload
+- **Persisted options** via `grist.setOption()` — grouping column, sort order,
+  editable columns, height cap, and aggregate rules all survive page reload
 - **English-only UI** — as of v5.0 the interface is English only (the old EN/FR auto-localization was removed)
 - **⚙ Diagnostics section** — the settings panel ends with a diagnostics list showing the widget version, per-column type detection (value type, date-like yes/no) and the first raw value of each column via `JSON.stringify`, so invisible characters appear as `\uXXXX` escapes
 
@@ -31,7 +34,8 @@ Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacos
    https://arkhivar.github.io/grist-sprints/groups.html
    ```
    (The old `widget_groupes.html` URL still works — it redirects to `groups.html`.)
-3. Select access level **Full access** — required for the row actions (duplicate / delete). With a lower level the view still works but the write actions fail with an error toast.
+3. Select access level **Full access** — required for row actions and Text-field
+   editing. With a lower level the view still works but write actions fail.
 4. Pick a grouping column in the widget toolbar
 
 ## Row actions (duplicate / delete)
@@ -65,6 +69,19 @@ access** in Grist (step 3 above). If access is insufficient, the operation is
 rejected and a transient error toast is shown at the top of the widget. After a
 successful action the widget does not patch its own state — Grist pushes fresh
 records and the view re-renders.
+
+## Editing text fields
+
+The **Editable text columns** section in Settings lists visible, writable Text
+columns. The `C` column is enabled automatically when it has that type; every
+listed column can be enabled or disabled independently.
+
+Click an enabled cell to open a large editor that fills nearly the entire
+widget. It preserves emoji, whitespace, and line breaks and includes a live
+character count. Save with the button or **Ctrl/Cmd+Enter**; cancel with the
+button or **Escape**. Formula columns, non-Text columns, hidden columns, and the
+active grouping column are not editable. Saving uses
+`grist.selectedTable.update()` and reports failures in Diagnostics.
 
 ## Group height
 
