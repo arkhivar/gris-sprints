@@ -54,7 +54,7 @@
       dupRecord:       'Duplicate record',
       delRecord:       'Delete record',
       confirmDel:      'Confirm delete?',
-      actionFailed:    'Action failed — the widget needs Full access',
+      actionFailed:    'Action failed',
       selCount:        '{n} selected',
       selDup:          'Duplicate selected',
       selDel:          'Delete selected',
@@ -65,7 +65,7 @@
       boolFalse: ['✗ false', 'No',    'False', 'false', '0'],
       boolLabels: ['✓ / ✗', 'Yes / No', 'True / False', '● badge', '1 / 0'],
   };
-  const WIDGET_VERSION = '5.2';
+  const WIDGET_VERSION = '5.3';
   const LOCALE = 'en-US';
 
   // ── Dates: Grist sends Date/DateTime as epoch seconds (UTC) ──
@@ -123,6 +123,8 @@
   let maxGroupH  = 200;
   let limitMaxH  = false;          // false = unlimited height (default)
   let dateLikeCache = new Map();   // col → bool, reset on every onRecords
+  let grantedAccessLevel = 'unknown';
+  let writableColumnIdsPromise = null;
   const armedDeletes = new Map();  // id (string) → timeoutId, two-step confirmation
   const selectedIds = new Set();   // ids (string) of checked records
 

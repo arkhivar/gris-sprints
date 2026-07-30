@@ -80,15 +80,12 @@
       for (const idStr of [...selectedIds]) {
         const rec = allRecords.find(r => String(r.id) === idStr);
         if (!rec) continue;
-        const fields = { ...rec };
-        delete fields.id;
-        delete fields.manualSort;
-        await grist.selectedTable.create({ fields });
+        await duplicateRecordById(idStr);
       }
       selectedIds.clear();
       updateSelBar();
     } catch (err) {
-      showToast(T.actionFailed);
+      showToast(actionErrorMessage('Duplicate selection', err));
     } finally {
       setSelBarDisabled(false);
     }
@@ -121,11 +118,9 @@
     disarmSelDelete();
     setSelBarDisabled(true);
     try {
-      for (const idStr of [...selectedIds]) {
-        await grist.selectedTable.destroy(Number(idStr));
-      }
+      await deleteRecordsByIds([...selectedIds]);
     } catch (err) {
-      showToast(T.actionFailed);
+      showToast(actionErrorMessage('Delete selection', err));
     } finally {
       selectedIds.clear();
       updateSelBar();
