@@ -367,7 +367,39 @@
 
   document.getElementById('btn-collapse').addEventListener('click', () => {
     getGroups().forEach(g => collapsed.add(g.key));
-    document.querySelectorAll('.group:�-�G����ƭy�(key, { key, label, sortKey, records: [] });
+    document.querySelectorAll('.group:not(.collapsed)').forEach(el => {
+      el.classList.add('collapsed');
+      el.querySelector('.group-header').setAttribute('aria-expanded', 'false');
+    });
+  });
+
+  // ── 13. Grouping ────────────────────────────────────────
+  function getGroups() {
+    if (!groupBy) return [];
+    const { col, granularity } = parseGroupBy(groupBy);
+    // Granularity active only if the column is still date-like
+    const dateMode = !!granularity && allColumns.includes(col) && isDateLikeColumn(col);
+    const map = new Map();
+    allRecords.forEach(rec => {
+      const raw = rec[col];
+      let key, label, sortKey;
+      if (raw == null || raw === '') {
+        key = '\x00__empty__'; label = raw; sortKey = null;
+      } else if (dateMode) {
+        // raw = epoch (number) or ISO string → epoch seconds
+        const sec = toEpochSec(raw);
+        if (sec == null) {
+          key = '\x00__empty__'; label = raw; sortKey = null;
+        } else {
+          const ms = bucketStartMs(sec, granularity);
+          key     = String(ms);               // the key carries the bucket epoch
+          label   = bucketLabel(ms, granularity);
+          sortKey = ms;
+        }
+      } else {
+        key = String(raw); label = raw; sortKey = null;
+      }
+      if (!map.has(key)) map.set(key, { key, label, sortKey, records: [] });
       map.get(key).records.push(rec);
     });
     const groups = Array.from(map.values());
