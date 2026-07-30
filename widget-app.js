@@ -302,7 +302,10 @@
   // write to the table via grist.selectedTable.create / destroy.
   grist.ready({ requiredAccess: 'full' });
 
-  grist.onOptions((opts) => {
+  grist.onOptions((opts, settings) => {
+    grantedAccessLevel = settings && settings.accessLevel
+      ? settings.accessLevel
+      : 'unknown';
     if (opts) {
       if (opts.groupBy)  { groupBy  = opts.groupBy;  groupSelect.value = groupBy;  }
       if (opts.sortMode) { sortMode = opts.sortMode; sortSelect.value  = sortMode; }
@@ -367,28 +370,7 @@
       const opt = document.createElement('option');
       opt.value = col; opt.textContent = col;
       groupSelect.appendChild(opt);
-      // Date-like columns: extra day / month / year granularities
-      // (knownDateCols persists even when the current fetch is empty)
-      if (knownDateCols.has(col)) {
-        DATE_GRANULARITIES.forEach(g => {
-          const o = document.createElement('option');
-          o.value = `${col}::${g}`;
-          o.textContent = `${col} â€” ${T[GRAN_I18N_KEY[g]]}`;
-          groupSelect.appendChild(o);
-        });
-      }
-    });
-    const target = groupBy || prev;
-    const values = Array.from(groupSelect.options).map(o => o.value);
-    if (target && values.includes(target)) groupSelect.value = target;
-  }
-
-  groupSelect.addEventListener('change', () => {
-    groupBy = groupSelect.value;
-    collapsed.clear();
-    grist.setOption('groupBy', groupBy);
-    render();
-    if (settingsPanel.classList.contains('open')) refreshColorGrid();
+      // Date-like columns: extra day / moÛ½-¢G§²ÚîÆ­yÖreshColorGrid();
   });
 
   sortSelect.addEventListener('change', () => {
@@ -604,6 +586,73 @@
     toastTimer = setTimeout(() => toast.classList.remove('visible'), 4000);
   }
 
+  function actionErrorMessage(action, err) {
+    console.error(`Grist ${action} failed`, err);
+    const detail = err && err.message ? err.message : String(err || 'Unknown error');
+    const accessHint = grantedAccessLevel !== 'full'
+      ? ` (granted access: ${grantedAccessLevel})`
+      : '';
+    return `${action} failed${accessHint}: ${detail}`.slice(0, 240);
+  }
+
+  function validRecordId(idStr) {
+    const id = Number(idStr);
+    if (!Number.isInteger(id) || id <= 0)
+      throw new Error(`Invalid record id: ${idStr}`);
+    return id;
+  }
+
+  async function getWritableColumnIds() {
+    if (writableColumnIdsPromise) return writableColumnIdsPromise;
+    writableColumnIdsPromise = (async () => {
+      const tableId = await grist.selectedTable.getTableId();
+      const tables = await grist.docApi.fetchTable('_grist_Tables');
+      const tableIndex = (tables.tableId || []).indexOf(tableId);
+      if (tableIndex < 0) throw new Error(`Table metadata not found for ${tableId}`);
+      const tableRef = tables.id[tableIndex];
+      const columns = await grist.docApi.fetchTable('_grist_Tables_column');
+      const result = new Set();
+      for (let i = 0; i < (columns.id || []).length; i++) {
+        const colId = columns.colId[i];
+        if (columns.parentId[i] !== tableRef || columns.isFormula[i]) continue;
+        if (!colId || colId === 'manualSort' || colId.startsWith('gristHelper_')) continue;
+        result.add(colId);
+      }
+      return result;
+    })();
+    try {
+      return await writableColumnIdsPromise;
+    } catch (err) {
+      writableColumnIdsPromise = null;
+      throw err;
+    }
+  }
+
+  async function duplicateRecordById(idStr) {
+    const recordId = validRecordId(idStr);
+    const raw = await grist.viewApi.fetchSelectedRecord(recordId, {
+      keepEncoded: true,
+      expandRefs: false,
+      includeColumns: 'normal',
+    });
+    if (!raw) throw new Error(`Record ${recordId} is no longer available`);
+    const writable = await getWritableColumnIds();
+    const fields = {};
+    for (const colId of writable) {
+      if (Object.prototype.hasOwnProperty.call(raw, colId))
+        fields[colId] = raw[colId];
+    }
+    await grist.selectedTable.create({ fields }, { parseStrings: false });
+  }
+
+  async function deleteRecordsByIds(idStrings) {
+    const recordIds = idStrings.map(validRecordId);
+    if (recordIds.length === 0) return;
+    // Pass an array even for one record. This avoids older TableOperations
+    // implementations rejecting the single-record response after deletion.
+    await grist.selectedTable.destroy(recordIds);
+  }
+
   function disarmDelete(btn, idStr) {
     clearTimeout(armedDeletes.get(idStr));
     armedDeletes.delete(idStr);
@@ -620,13 +669,10 @@
     if (!rec) return;
     btn.disabled = true;
     try {
-      const fields = { ...rec };
-      delete fields.id;
-      delete fields.manualSort;
-      await grist.selectedTable.create({ fields });
+      await duplicateRecordById(idStr);
       // No local mutation: Grist will send onRecords â†’ re-render.
     } catch (err) {
-      showToast(T.actionFailed);
+      showToast(actionErrorMessage('Duplicate', err));
     } finally {
       // Re-enabled if the DOM was not rebuilt in the meantime.
       if (btn.isConnected) btn.disabled = false;
@@ -648,10 +694,10 @@
     armedDeletes.delete(idStr);
     btn.disabled = true;
     try {
-      await grist.selectedTable.destroy(Number(idStr));
+      await deleteRecordsByIds([idStr]);
       // No local mutation: Grist will send onRecords â†’ re-render.
     } catch (err) {
-      showToast(T.actionFailed);
+      showToast(actionErrorMessage('Delete', err));
       disarmDelete(btn, idStr);
     } finally {
       if (btn.isConnected) btn.disabled = false;

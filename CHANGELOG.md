@@ -2,6 +2,17 @@
 
 All notable changes to the grist-sprints grouped-view widget.
 
+## v5.3 — 2026-07-30
+
+- Duplicate records from raw Grist values and copy only writable columns,
+  excluding formula, helper, ID, and manual-sort fields.
+- Delete records in one array operation, including single-row deletes, for
+  compatibility with TableOperations implementations that reject the scalar
+  response after deleting successfully.
+- Report the real Grist API error and granted access level instead of showing
+  a misleading Full-access message for every action failure.
+- Bumped static asset cache keys so the corrected record actions load.
+
 ## v5.2 — 2026-07-29
 
 - Format ISO dates supplied by Grist as object-wrapped cell values, rather

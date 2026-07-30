@@ -138,6 +138,10 @@ Details:
   non-breaking spaces) are normalized before matching, so strings copied
   from exports still parse. ISO values exposed by Grist through object wrappers
   are normalized through the same strict parser.
+- Duplicate actions fetch raw cell values and copy only writable columns;
+  formula/helper fields are left for Grist to calculate. Delete actions use
+  array operations for consistent single- and multi-row behavior. If an action
+  fails, the widget shows the actual Grist API error and granted access level.
 
 ## Troubleshooting
 
