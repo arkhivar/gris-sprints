@@ -65,7 +65,7 @@
       boolFalse: ['✗ false', 'No',    'False', 'false', '0'],
       boolLabels: ['✓ / ✗', 'Yes / No', 'True / False', '● badge', '1 / 0'],
   };
-  const WIDGET_VERSION = '5.3';
+  const WIDGET_VERSION = '5.4';
   const LOCALE = 'en-US';
 
   // ── Dates: Grist sends Date/DateTime as epoch seconds (UTC) ──
@@ -125,6 +125,9 @@
   let dateLikeCache = new Map();   // col → bool, reset on every onRecords
   let grantedAccessLevel = 'unknown';
   let writableColumnIdsPromise = null;
+  let selectedTableId = 'unknown';
+  let writableColumnIds = [];
+  const actionDiagnostics = [];
   const armedDeletes = new Map();  // id (string) → timeoutId, two-step confirmation
   const selectedIds = new Set();   // ids (string) of checked records
 
