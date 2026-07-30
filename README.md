@@ -142,6 +142,10 @@ Details:
   formula/helper fields are left for Grist to calculate. Delete actions use
   array operations for consistent single- and multi-row behavior. If an action
   fails, the widget shows the actual Grist API error and granted access level.
+- Reference cells are fetched in Grist's typed, unexpanded format before
+  duplication so Ref/RefList values remain valid IDs rather than decoded
+  `RecordStub` objects. Diagnostics also records recent action payload types,
+  outcomes, record IDs, table/access context, and complete API errors.
 
 ## Troubleshooting
 

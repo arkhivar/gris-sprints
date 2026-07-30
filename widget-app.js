@@ -259,6 +259,16 @@
     head.className = 'diag-row diag-head';
     head.textContent = `v${WIDGET_VERSION} · ${allRecords.length} records · ${allColumns.length} columns`;
     list.appendChild(head);
+    const context = document.createElement('div');
+    context.className = 'diag-row';
+    context.textContent = `access: ${grantedAccessLevel} · table: ${selectedTableId}`;
+    list.appendChild(context);
+    const writable = document.createElement('div');
+    writable.className = 'diag-row';
+    writable.textContent = writableColumnIds.length
+      ? `writable: ${writableColumnIds.join(', ')}`
+      : 'writable: not loaded yet';
+    list.appendChild(writable);
     allColumns.forEach(col => {
       const first = allRecords.map(r => r[col]).find(v => v != null && v !== '');
       const row = document.createElement('div');
@@ -269,6 +279,19 @@
       row.textContent = `${col} · ${typeof first} · date-like: ${isDateLikeColumn(col) ? 'yes' : 'no'} · first: ${raw.length > 80 ? raw.slice(0, 80) + '…' : raw}`;
       list.appendChild(row);
     });
+    if (actionDiagnostics.length) {
+      const actionHead = document.createElement('div');
+      actionHead.className = 'diag-row diag-head diag-action-head';
+      actionHead.textContent = 'Recent record actions';
+      list.appendChild(actionHead);
+      actionDiagnostics.forEach(entry => {
+        const row = document.createElement('div');
+        row.className = `diag-row diag-action diag-${entry.status}`;
+        const details = entry.details ? ` · ${entry.details}` : '';
+        row.textContent = `${entry.time} · ${entry.action} · ${entry.status}${details}`;
+        list.appendChild(row);
+      });
+    }
   }
 
   function initAggSection() {
@@ -306,6 +329,9 @@
     grantedAccessLevel = settings && settings.accessLevel
       ? settings.accessLevel
       : 'unknown';
+    getWritableColumnIds().catch(err =>
+      recordActionDiagnostic('Metadata', 'error',
+        err && err.message ? err.message : String(err)));
     if (opts) {
       if (opts.groupBy)  { groupBy  = opts.groupBy;  groupSelect.value = groupBy;  }
       if (opts.sortMode) { sortMode = opts.sortMode; sortSelect.value  = sortMode; }
@@ -610,10 +636,35 @@
   function actionErrorMessage(action, err) {
     console.error(`Grist ${action} failed`, err);
     const detail = err && err.message ? err.message : String(err || 'Unknown error');
+    recordActionDiagnostic(action, 'error', detail);
     const accessHint = grantedAccessLevel !== 'full'
       ? ` (granted access: ${grantedAccessLevel})`
       : '';
     return `${action} failed${accessHint}: ${detail}`.slice(0, 240);
+  }
+
+  function recordActionDiagnostic(action, status, details) {
+    actionDiagnostics.unshift({
+      time: new Date().toISOString().slice(11, 19),
+      action,
+      status,
+      details: details ? String(details).slice(0, 500) : '',
+    });
+    actionDiagnostics.splice(12);
+    if (settingsPanel.classList.contains('open')) refreshDiag();
+  }
+
+  function fieldTypeSummary(fields) {
+    return Object.entries(fields).map(([colId, value]) => {
+      let type;
+      if (Array.isArray(value))
+        type = `encoded:${String(value[0] || 'array')}`;
+      else if (value === null)
+        type = 'null';
+      else
+        type = typeof value;
+      return `${colId}=${type}`;
+    }).join(', ');
   }
 
   function validRecordId(idStr) {
@@ -627,6 +678,7 @@
     if (writableColumnIdsPromise) return writableColumnIdsPromise;
     writableColumnIdsPromise = (async () => {
       const tableId = await grist.selectedTable.getTableId();
+      selectedTableId = tableId;
       const tables = await grist.docApi.fetchTable('_grist_Tables');
       const tableIndex = (tables.tableId || []).indexOf(tableId);
       if (tableIndex < 0) throw new Error(`Table metadata not found for ${tableId}`);
@@ -639,6 +691,9 @@
         if (!colId || colId === 'manualSort' || colId.startsWith('gristHelper_')) continue;
         result.add(colId);
       }
+      writableColumnIds = [...result];
+      recordActionDiagnostic('Metadata', 'ok',
+        `table=${tableId} · writable=${writableColumnIds.join(', ')}`);
       return result;
     })();
     try {
@@ -651,8 +706,9 @@
 
   async function duplicateRecordById(idStr) {
     const recordId = validRecordId(idStr);
+    recordActionDiagnostic('Duplicate', 'start', `record=${recordId}`);
     const raw = await grist.viewApi.fetchSelectedRecord(recordId, {
-      keepEncoded: true,
+      cellFormat: 'typed',
       expandRefs: false,
       includeColumns: 'normal',
     });
@@ -663,15 +719,22 @@
       if (Object.prototype.hasOwnProperty.call(raw, colId))
         fields[colId] = raw[colId];
     }
-    await grist.selectedTable.create({ fields }, { parseStrings: false });
+    recordActionDiagnostic('Duplicate payload', 'ok',
+      `record=${recordId} · ${fieldTypeSummary(fields)}`);
+    const created = await grist.selectedTable.create({ fields }, { parseStrings: false });
+    const createdId = created && created.id != null ? created.id : 'unknown';
+    recordActionDiagnostic('Duplicate', 'ok',
+      `source=${recordId} · created=${createdId}`);
   }
 
   async function deleteRecordsByIds(idStrings) {
     const recordIds = idStrings.map(validRecordId);
     if (recordIds.length === 0) return;
+    recordActionDiagnostic('Delete', 'start', `records=${recordIds.join(', ')}`);
     // Pass an array even for one record. This avoids older TableOperations
     // implementations rejecting the single-record response after deletion.
     await grist.selectedTable.destroy(recordIds);
+    recordActionDiagnostic('Delete', 'ok', `records=${recordIds.join(', ')}`);
   }
 
   function disarmDelete(btn, idStr) {

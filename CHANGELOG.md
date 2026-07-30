@@ -2,6 +2,17 @@
 
 All notable changes to the grist-sprints grouped-view widget.
 
+## v5.4 — 2026-07-30
+
+- Fetch duplicate payloads with `cellFormat: "typed"` and unexpanded
+  references so Ref/RefList cells stay valid Grist values instead of decoded
+  `RecordStub` objects.
+- Expand Diagnostics with granted access, selected table ID, writable columns,
+  encoded payload types, created/deleted record IDs, recent action status, and
+  full API error messages.
+- Increase the diagnostics panel height and color-code action outcomes.
+- Bumped static asset cache keys so the typed-reference fix loads.
+
 ## v5.3 — 2026-07-30
 
 - Duplicate records from raw Grist values and copy only writable columns,
