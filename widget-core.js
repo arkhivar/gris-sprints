@@ -12,13 +12,17 @@
       sortCountAsc:    'Count ↑',
       sectionMaxH:     'Max height per group',
       sectionBool:     'True / false display',
-      sectionEditable: 'Editable text columns',
-      editableHint:    'Click an enabled text cell to open the large editor.',
+      sectionEditable: 'Editable fields',
+      editableHint:    'Choose Text fields. Writable DateTime fields are enabled automatically.',
       editableLoading: 'Loading writable columns…',
-      editableNone:    'No writable Text columns are visible.',
+      editableNone:    'No writable Text or DateTime fields are visible.',
+      editableAuto:    'DateTime · automatic',
       editCell:        'Edit text',
+      editDateTime:    'Edit date and time',
       editTitle:       'Edit',
       editRecord:      'Record',
+      dateTimeLabel:   'UTC date and time',
+      dateTimeHint:    'Stored and displayed in UTC.',
       editCancel:      'Cancel',
       editSave:        'Save changes',
       editShortcut:    'Ctrl/Cmd+Enter to save · Esc to cancel',
@@ -73,7 +77,7 @@
       boolFalse: ['✗ false', 'No',    'False', 'false', '0'],
       boolLabels: ['✓ / ✗', 'Yes / No', 'True / False', '● badge', '1 / 0'],
   };
-  const WIDGET_VERSION = '5.7';
+  const WIDGET_VERSION = '5.8';
   const LOCALE = 'en-US';
 
   // ── Dates: Grist sends Date/DateTime as epoch seconds (UTC) ──
@@ -158,9 +162,12 @@
   const btnAddAgg     = document.getElementById('btn-add-agg');
   const editableColList = document.getElementById('editable-col-list');
   const cellEditor      = document.getElementById('cell-editor');
+  const cellEditorDialog = document.getElementById('cell-editor-dialog');
   const cellEditorTitle = document.getElementById('cell-editor-title');
   const cellEditorMeta  = document.getElementById('cell-editor-meta');
   const cellEditorText  = document.getElementById('cell-editor-text');
+  const cellEditorDateTimePanel = document.getElementById('cell-editor-datetime-panel');
+  const cellEditorDateTime = document.getElementById('cell-editor-datetime');
   const cellEditorCount = document.getElementById('cell-editor-count');
   const btnEditorClose  = document.getElementById('btn-editor-close');
   const btnEditorCancel = document.getElementById('btn-editor-cancel');
@@ -213,6 +220,8 @@
     document.getElementById('btn-editor-cancel').textContent = T.editCancel;
     document.getElementById('btn-editor-save').textContent = T.editSave;
     document.getElementById('cell-editor-shortcut').textContent = T.editShortcut;
+    document.querySelector('label[for="cell-editor-datetime"]').textContent = T.dateTimeLabel;
+    document.getElementById('cell-editor-datetime-hint').textContent = T.dateTimeHint;
   }
   applyI18nToDOM();
   statGroups  = document.getElementById('stat-groups');

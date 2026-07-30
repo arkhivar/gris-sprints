@@ -6,7 +6,7 @@
   <title>Grouped view — Grist widget</title>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="widget.css?v=5.7">
+  <link rel="stylesheet" href="widget.css?v=5.8">
 </head>
 <body>
 <div id="app">
@@ -71,8 +71,8 @@
     </div>
 
     <div>
-      <p class="setting-section-title" id="lbl-editable">Editable text columns</p>
-      <p class="setting-help" id="editable-hint">Click an enabled text cell to open the large editor.</p>
+      <p class="setting-section-title" id="lbl-editable">Editable fields</p>
+      <p class="setting-help" id="editable-hint">Choose Text fields. Writable DateTime fields are enabled automatically.</p>
       <div class="editable-col-list" id="editable-col-list"
            aria-labelledby="lbl-editable"></div>
     </div>
@@ -123,7 +123,7 @@
 </div>
 
 <div class="cell-editor-overlay" id="cell-editor" hidden>
-  <section class="cell-editor-dialog" role="dialog" aria-modal="true"
+  <section class="cell-editor-dialog" id="cell-editor-dialog" role="dialog" aria-modal="true"
            aria-labelledby="cell-editor-title">
     <header class="cell-editor-header">
       <div>
@@ -134,6 +134,11 @@
               aria-label="Cancel">×</button>
     </header>
     <textarea id="cell-editor-text" spellcheck="true" aria-label="Edit text"></textarea>
+    <div class="cell-editor-datetime" id="cell-editor-datetime-panel" hidden>
+      <label for="cell-editor-datetime">UTC date and time</label>
+      <input id="cell-editor-datetime" type="datetime-local" step="1">
+      <p id="cell-editor-datetime-hint">Stored and displayed in UTC.</p>
+    </div>
     <footer class="cell-editor-footer">
       <span id="cell-editor-count">0 characters</span>
       <span class="cell-editor-shortcut" id="cell-editor-shortcut"></span>
@@ -145,8 +150,8 @@
   </section>
 </div>
 
-<script src="widget-core.js?v=5.7"></script>
-  <script src="widget-app.js?v=5.7"></script>
-  <script src="widget-actions.js?v=5.7"></script>
+<script src="widget-core.js?v=5.8"></script>
+  <script src="widget-app.js?v=5.8"></script>
+  <script src="widget-actions.js?v=5.8"></script>
 </body>
 </html>

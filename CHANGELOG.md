@@ -2,6 +2,18 @@
 
 All notable changes to the grist-sprints grouped-view widget.
 
+## v5.8 — 2026-07-30
+
+- Keep editable Text previews to one line and truncate overflow with an
+  ellipsis, so long notes never increase table row height.
+- Detect true writable Grist DateTime columns from table metadata and make
+  them editable automatically with a native date-and-time picker.
+- Read, write, and display DateTime values consistently in UTC, avoiding
+  browser-local timezone shifts.
+- Expand Editable Fields settings and Diagnostics to identify automatic
+  DateTime editors.
+- Bumped static asset cache keys so the compact previews and picker load.
+
 ## v5.7 — 2026-07-30
 
 - Add configurable editing for writable Text columns, with `C` enabled by
