@@ -227,7 +227,7 @@
     return String(v);   // no thousand separators (-1425, never -1,425)
   }
 
-  // Chips shown in the header after the record-count badge
+  // Configured aggregate chips stay at the right edge of the group header.
   function buildAggChips(records) {
     if (!aggregates.length) return '';
     const chips = aggregates
@@ -599,10 +599,9 @@
     statGroups.textContent  = groups.length;
     statRecords.textContent = allRecords.length;
 
-    groups.forEach((group, groupIndex) => {
+    groups.forEach(group => {
       const isCollapsed = collapsed.has(group.key);
       const isEmpty     = group.key === '\x00__empty__';
-      const dotColor    = DEFAULT_PALETTE[groupIndex % DEFAULT_PALETTE.length];
       const labelTxt    = isEmpty ? T.emptyGroup : esc(String(group.label));
       const labelCls    = isEmpty ? 'group-label is-empty' : 'group-label';
       const bodyId      = 'grp-' + btoa(encodeURIComponent(group.key)).replace(/[^a-zA-Z0-9]/g, '');
@@ -622,11 +621,11 @@
              aria-hidden="true" focusable="false">
           <polyline points="6 9 12 15 18 9"/>
         </svg>
-        <span class="group-dot" style="background:${dotColor}" aria-hidden="true"></span>
-        <span class="${labelCls}">${labelTxt}</span>
         <span class="group-badge"
               aria-label="${group.records.length}\u00a0${group.records.length > 1 ? T.records : T.record}"
-        >${group.records.length}</span>${buildAggChips(group.records)}`;
+        >${group.records.length}</span>
+        <span class="${labelCls}">${labelTxt}</span>
+        ${buildAggChips(group.records)}`;
 
       header.addEventListener('click', () => {
         if (collapsed.has(group.key)) {
