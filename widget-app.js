@@ -650,7 +650,7 @@
     const raw = await grist.viewApi.fetchSelectedRecord(recordId, {
       cellFormat: 'typed',
       expandRefs: false,
-      includeColumns: 'normal',
+      includeColumns: 'all',
     });
     if (!raw) throw new Error(`Record ${recordId} is no longer available`);
     const writable = await getWritableColumnIds();
@@ -661,6 +661,13 @@
         typedFields[colId] = raw[colId];
         fields[colId] = normalizeTypedCell(raw[colId]);
       }
+    }
+    // Keep the duplicate beside its source in Grist's underlying row order.
+    // manualSort is a special writable column, so it is fetched separately
+    // from the normal writable-column list and copied only when numeric.
+    if (typeof raw.manualSort === 'number' && Number.isFinite(raw.manualSort)) {
+      typedFields.manualSort = raw.manualSort;
+      fields.manualSort = raw.manualSort;
     }
     recordActionDiagnostic('Duplicate payload', 'ok',
       `record=${recordId} · typed: ${fieldTypeSummary(typedFields)} · normalized: ${fieldTypeSummary(fields)}`);
