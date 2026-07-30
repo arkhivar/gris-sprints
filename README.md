@@ -1,6 +1,6 @@
 # grist-sprints — Grist grouped-view widget
 
-> Grist custom widget — collapsible grouped view, Airtable/Notion-style. Groups records by any column with fold/unfold, group sorting, automatic group colors, aggregate chips, large Text-field editing, DateTime picking, and persisted options via `grist.setOption()`.
+> Grist custom widget — collapsible grouped view, Airtable/Notion-style. Groups records by any column with fold/unfold, group sorting, row-count and aggregate chips, large Text-field editing, DateTime picking, and persisted options via `grist.setOption()`.
 
 Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacoste/grist-widget-grouped-view) with added **aggregates in group headers**. Since v5.0 the interface is **English-only**.
 
@@ -19,7 +19,8 @@ Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacos
   UTC date and time without finding the record in the source table
 - **Multi-select bulk actions** — tick row checkboxes (or a group's select-all), then duplicate / delete the whole selection from the bottom action bar
 - **Aggregates in group headers** — configurable count / sum / avg / min / max chips per group (see below)
-- **Automatic color per group** using a rotating palette
+- **Row count beside every group name**, with configured aggregate chips aligned
+  at the right edge of the header
 - **Null values** collected in an *(empty)* group, sorted last
 - **Cell formatting**: booleans ✓/✗ (several display styles), plain numbers (no thousand separators — `-1425`, not `-1,425`), ISO dates, arrays
 - **Unlimited group height by default** — uncollapsed groups show all their rows and the page scrolls; an optional per-group height cap can be enabled in settings (see below)
@@ -175,8 +176,8 @@ Details:
   normalized to the writable forms expected by `TableOperations.create`.
   The source record's `manualSort` position is copied so the duplicate remains
   beside it rather than moving to the bottom of the group.
-  Group colors use the automatic palette; per-group color customization and
-  its settings section have been removed.
+  Group-color markers and their settings have been removed; each group header
+  shows its row count beside the group name instead.
 
 ## Troubleshooting
 

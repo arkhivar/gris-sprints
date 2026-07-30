@@ -77,7 +77,7 @@
       boolFalse: ['✗ false', 'No',    'False', 'false', '0'],
       boolLabels: ['✓ / ✗', 'Yes / No', 'True / False', '● badge', '1 / 0'],
   };
-  const WIDGET_VERSION = '5.8';
+  const WIDGET_VERSION = '5.9';
   const LOCALE = 'en-US';
 
   // ── Dates: Grist sends Date/DateTime as epoch seconds (UTC) ──
@@ -87,11 +87,6 @@
   const GRAN_I18N_KEY = { day: 'byDay', month: 'byMonth', year: 'byYear' };
 
   // ── 2. Constants (use T) ──────────────────────────
-  const DEFAULT_PALETTE = [
-    '#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6',
-    '#ec4899','#06b6d4','#84cc16','#f97316','#6366f1',
-  ];
-
   function makeBoolFormats() {
     return [
       { key: 'check', label: T.boolLabels[0],

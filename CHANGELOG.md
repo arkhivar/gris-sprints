@@ -2,6 +2,15 @@
 
 All notable changes to the grist-sprints grouped-view widget.
 
+## v5.9 — 2026-07-30
+
+- Remove the remaining colored dot from every group header.
+- Move the group row-count badge into the dot's former position, immediately
+  before the group name; configured aggregate chips remain aligned on the
+  right.
+- Remove the now-unused automatic color palette and dot styling.
+- Bumped static asset cache keys so the new group-header layout loads.
+
 ## v5.8 — 2026-07-30
 
 - Keep editable Text previews to one line and truncate overflow with an
