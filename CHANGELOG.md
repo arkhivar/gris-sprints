@@ -2,6 +2,17 @@
 
 All notable changes to the grist-sprints grouped-view widget.
 
+## v5.7 — 2026-07-30
+
+- Add configurable editing for writable Text columns, with `C` enabled by
+  default when it is a writable Text field.
+- Open editable cells in a deliberately large, nearly full-widget textarea
+  suitable for long attendance notes, emojis, and multi-line text.
+- Add Save/Cancel controls, live character count, Ctrl/Cmd+Enter save, Escape
+  cancel, immediate local refresh, and Grist update diagnostics.
+- Exclude formula, non-Text, hidden, and active grouping columns from editing.
+- Bumped static asset cache keys so the text editor loads.
+
 ## v5.6 — 2026-07-30
 
 - Preserve a duplicated record's Grist `manualSort` position so the copy stays

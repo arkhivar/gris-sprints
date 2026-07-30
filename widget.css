@@ -107,6 +107,27 @@
       font-size: 10px; font-weight: 600; letter-spacing: .05em;
       text-transform: uppercase; color: var(--muted); margin-bottom: 2px;
     }
+    .setting-help {
+      margin: 0 0 6px; color: var(--muted); font-size: 11px;
+    }
+
+    /* Editable Text columns */
+    .editable-col-list {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .editable-col-option {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 8px;
+      border: 1px solid var(--border-strong); border-radius: 12px;
+      background: var(--bg); color: var(--text);
+      font-size: 11px; font-weight: 500; cursor: pointer;
+    }
+    .editable-col-option input {
+      accent-color: var(--accent); cursor: pointer;
+    }
+    .editable-col-empty {
+      color: var(--muted); font-size: 11px; font-style: italic;
+    }
 
     .btn-reset-color {
       font-size: 10px; padding: 1px 6px;
@@ -297,6 +318,33 @@
 
     .cell-null { color: var(--muted); font-style: italic; font-size: 11px; }
     .cell-num  { font-family: var(--mono); font-size: 11px; }
+    .rec-table tbody td.cell-editable { padding: 0; }
+    .cell-edit-btn {
+      display: flex; align-items: flex-start; gap: 7px;
+      width: 100%; min-width: 120px; max-width: 360px;
+      padding: 5px 10px; border: 0; background: transparent;
+      color: inherit; font: inherit; text-align: left; cursor: text; outline: none;
+    }
+    .cell-edit-value {
+      display: -webkit-box; flex: 1; min-width: 0;
+      overflow: hidden; text-overflow: ellipsis;
+      white-space: pre-wrap; overflow-wrap: anywhere;
+      -webkit-box-orient: vertical; -webkit-line-clamp: 3;
+      line-clamp: 3;
+    }
+    .cell-edit-pencil {
+      flex: 0 0 auto; color: var(--muted); opacity: .35;
+      font-size: 12px; line-height: 1.5;
+      transition: opacity .1s, color .1s;
+    }
+    .cell-edit-btn:hover .cell-edit-pencil,
+    .cell-edit-btn:focus-visible .cell-edit-pencil {
+      opacity: 1; color: var(--accent);
+    }
+    .cell-edit-btn:focus-visible {
+      box-shadow: inset var(--focus-ring);
+      background: color-mix(in srgb, var(--accent) 5%, transparent);
+    }
     .only-group-col { padding: 8px 12px; font-size: 11px; color: var(--muted); font-style: italic; }
 
     /* ── Row actions (duplicate / delete) ── */
@@ -391,3 +439,79 @@
     .diag-ok { color: #15803d; }
     .diag-error { color: #b91c1c; }
     .diag-start { color: #1d4ed8; }
+
+    /* Large text editor: intentionally fills almost the entire widget. */
+    .cell-editor-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      display: grid; place-items: center;
+      padding: 16px;
+      background: rgba(24, 24, 27, .48);
+      backdrop-filter: blur(2px);
+    }
+    .cell-editor-overlay[hidden] { display: none; }
+    .cell-editor-dialog {
+      width: min(1120px, calc(100vw - 32px));
+      height: min(860px, calc(100vh - 32px));
+      min-height: min(520px, calc(100vh - 32px));
+      display: flex; flex-direction: column; min-width: 0;
+      background: var(--surface);
+      border: 1px solid var(--border-strong); border-radius: 10px;
+      box-shadow: 0 24px 70px rgba(0,0,0,.28);
+      overflow: hidden;
+    }
+    .cell-editor-header {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+      padding: 15px 18px 12px; border-bottom: 1px solid var(--border);
+      background: var(--group-stripe);
+    }
+    .cell-editor-header h2 {
+      margin: 0; font-size: 16px; line-height: 1.3; font-weight: 600;
+    }
+    .cell-editor-header p {
+      margin: 3px 0 0; color: var(--muted); font-size: 11px;
+      font-family: var(--mono);
+    }
+    .cell-editor-header p.error { color: #b91c1c; }
+    .cell-editor-close {
+      width: 30px; height: 30px; flex: 0 0 auto;
+      border: 1px solid var(--border-strong); border-radius: var(--radius);
+      background: var(--surface); color: var(--muted); cursor: pointer;
+      font: 20px/1 var(--font); outline: none;
+    }
+    .cell-editor-close:hover { color: var(--text); border-color: var(--muted); }
+    .cell-editor-close:focus-visible { box-shadow: var(--focus-ring); }
+    #cell-editor-text {
+      flex: 1; width: 100%; min-height: 0; resize: none;
+      padding: 22px 24px;
+      border: 0; outline: none;
+      background: var(--surface); color: var(--text);
+      font: 16px/1.6 var(--font);
+      tab-size: 2;
+    }
+    #cell-editor-text:focus { box-shadow: inset 0 0 0 2px rgba(37,99,235,.15); }
+    .cell-editor-footer {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 16px; border-top: 1px solid var(--border);
+      background: var(--group-stripe); color: var(--muted); font-size: 11px;
+    }
+    .cell-editor-shortcut { margin-left: auto; }
+    .cell-editor-actions { display: flex; gap: 8px; }
+    .editor-btn { padding: 6px 13px; font-size: 12px; }
+    .editor-save {
+      background: var(--accent); border-color: var(--accent); color: #fff;
+    }
+    .editor-save:hover { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+    .editor-btn:disabled, .cell-editor-close:disabled {
+      opacity: .45; cursor: default;
+    }
+
+    @media (max-width: 640px), (max-height: 600px) {
+      .cell-editor-overlay { padding: 0; }
+      .cell-editor-dialog {
+        width: 100vw; height: 100vh; min-height: 0; border: 0; border-radius: 0;
+      }
+      #cell-editor-text { padding: 16px; }
+      .cell-editor-footer { flex-wrap: wrap; }
+      .cell-editor-shortcut { order: 3; width: 100%; margin-left: 0; }
+      .cell-editor-actions { margin-left: auto; }
+    }

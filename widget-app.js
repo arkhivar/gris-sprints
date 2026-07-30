@@ -3,8 +3,85 @@
     const isOpen = settingsPanel.classList.toggle('open');
     btnSettings.classList.toggle('active', isOpen);
     btnSettings.setAttribute('aria-expanded', String(isOpen));
-    if (isOpen) { refreshBoolSection(); refreshAggSection(); refreshDiag(); }
+    if (isOpen) {
+      refreshBoolSection();
+      refreshEditableColumnsSection();
+      refreshAggSection();
+      refreshDiag();
+    }
   });
+
+  // ── 7b. Editable Text columns ──────────────────────────────
+  function isTextColumnType(type) {
+    return String(type || '').split(':')[0] === 'Text';
+  }
+
+  function editableTextCandidates() {
+    const groupCol = parseGroupBy(groupBy).col;
+    return allColumns.filter(col =>
+      col !== groupCol &&
+      writableColumnIds.includes(col) &&
+      isTextColumnType(writableColumnTypes[col]));
+  }
+
+  function isEditableTextColumn(col) {
+    return editableColumns.has(col) && editableTextCandidates().includes(col);
+  }
+
+  function saveEditableColumns() {
+    editableColumnsConfigured = true;
+    grist.setOption('editableColumns', JSON.stringify([...editableColumns].sort()));
+  }
+
+  function applyEditableColumnDefaults() {
+    if (editableDefaultsApplied || editableColumnsConfigured) return;
+    editableDefaultsApplied = true;
+    // This widget's attendance-notes field is C. Enable it immediately when
+    // it is a genuine writable Text column; every column remains configurable.
+    if (writableColumnIds.includes('C') && isTextColumnType(writableColumnTypes.C)) {
+      editableColumns.add('C');
+      saveEditableColumns();
+    }
+  }
+
+  function refreshEditableColumnsSection() {
+    if (!editableColList) return;
+    editableColList.innerHTML = '';
+    if (!writableColumnIds.length) {
+      const msg = document.createElement('span');
+      msg.className = 'editable-col-empty';
+      msg.textContent = T.editableLoading;
+      editableColList.appendChild(msg);
+      return;
+    }
+    const candidates = editableTextCandidates();
+    if (!candidates.length) {
+      const msg = document.createElement('span');
+      msg.className = 'editable-col-empty';
+      msg.textContent = T.editableNone;
+      editableColList.appendChild(msg);
+      return;
+    }
+    candidates.forEach(col => {
+      const label = document.createElement('label');
+      label.className = 'editable-col-option';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = editableColumns.has(col);
+      cb.value = col;
+      cb.addEventListener('change', () => {
+        if (cb.checked) editableColumns.add(col);
+        else editableColumns.delete(col);
+        saveEditableColumns();
+        render();
+      });
+      const text = document.createElement('span');
+      text.textContent = col;
+      label.appendChild(cb);
+      label.appendChild(text);
+      editableColList.appendChild(label);
+    });
+  }
 
   // ── 8. Boolean formats ────────────────────────────────────
   function buildBoolButtons() {
@@ -204,6 +281,12 @@
       ? `writable: ${writableColumnIds.join(', ')}`
       : 'writable: not loaded yet';
     list.appendChild(writable);
+    const editable = document.createElement('div');
+    editable.className = 'diag-row';
+    editable.textContent = editableColumns.size
+      ? `editable text: ${[...editableColumns].join(', ')}`
+      : 'editable text: none';
+    list.appendChild(editable);
     allColumns.forEach(col => {
       const first = allRecords.map(r => r[col]).find(v => v != null && v !== '');
       const row = document.createElement('div');
@@ -256,17 +339,14 @@
   }
 
   // ── 11. Grist ────────────────────────────────────────────
-  // Full access required: row actions (duplicate / delete)
-  // write to the table via grist.selectedTable.create / destroy.
+  // Full access required: row actions and editable Text cells write through
+  // grist.selectedTable.create / update / destroy.
   grist.ready({ requiredAccess: 'full' });
 
   grist.onOptions((opts, settings) => {
     grantedAccessLevel = settings && settings.accessLevel
       ? settings.accessLevel
       : 'unknown';
-    getWritableColumnIds().catch(err =>
-      recordActionDiagnostic('Metadata', 'error',
-        err && err.message ? err.message : String(err)));
     if (opts) {
       if (opts.groupBy)  { groupBy  = opts.groupBy;  groupSelect.value = groupBy;  }
       if (opts.sortMode) { sortMode = opts.sortMode; sortSelect.value  = sortMode; }
@@ -283,8 +363,30 @@
           if (Array.isArray(arr)) aggregates = arr.filter(isValidAggRule);
         } catch(e) { aggregates = []; }
       }
+      if (Object.prototype.hasOwnProperty.call(opts, 'editableColumns')) {
+        editableColumnsConfigured = true;
+        try {
+          const arr = typeof opts.editableColumns === 'string'
+            ? JSON.parse(opts.editableColumns)
+            : opts.editableColumns;
+          editableColumns = new Set(Array.isArray(arr)
+            ? arr.filter(col => typeof col === 'string')
+            : []);
+        } catch (e) {
+          editableColumns = new Set();
+        }
+      }
     }
+    getWritableColumnIds().then(() => {
+      applyEditableColumnDefaults();
+      refreshEditableColumnsSection();
+      refreshDiag();
+      render();
+    }).catch(err =>
+      recordActionDiagnostic('Metadata', 'error',
+        err && err.message ? err.message : String(err)));
     buildBoolButtons();
+    refreshEditableColumnsSection();
     refreshAggSection();
     refreshDiag();
     render();
@@ -311,6 +413,7 @@
     // Always rebuild: already-known columns stay offered
     // even when the current filter returns no records.
     rebuildColumnSelect();
+    if (settingsPanel.classList.contains('open')) refreshEditableColumnsSection();
     if (settingsPanel.classList.contains('open')) refreshAggSection();
     if (settingsPanel.classList.contains('open')) refreshDiag();
     render();
@@ -348,6 +451,7 @@
     groupBy = groupSelect.value;
     collapsed.clear();
     grist.setOption('groupBy', groupBy);
+    if (settingsPanel.classList.contains('open')) refreshEditableColumnsSection();
     render();
   });
 
@@ -524,7 +628,7 @@
       + `<td class="row-sel"><input type="checkbox" class="sel-cb sel-cb-row"`
       + ` data-id="${esc(idStr)}"${sel ? ' checked' : ''}`
       + ` aria-label="${esc(T.selAll)}"></td>`
-      + `${cols.map(c => `<td>${renderCell(rec[c], c)}</td>`).join('')}`
+      + `${cols.map(c => renderTableCell(rec, c)).join('')}`
       + `<td class="row-actions">${rowActionsHtml(rec)}</td></tr>`;
     }).join('');
     return `<div class="scroll-inner"><table class="rec-table">
@@ -569,6 +673,92 @@
       ? ` (granted access: ${grantedAccessLevel})`
       : '';
     return `${action} failed${accessHint}: ${detail}`.slice(0, 240);
+  }
+
+  function renderTableCell(rec, col) {
+    const rendered = renderCell(rec[col], col);
+    if (!isEditableTextColumn(col))
+      return `<td>${rendered}</td>`;
+    const id = esc(String(rec.id));
+    const colAttr = esc(col);
+    return `<td class="cell-editable">`
+      + `<button type="button" class="cell-edit-btn" data-edit-id="${id}" data-edit-col="${colAttr}"`
+      + ` aria-label="${esc(T.editCell)}: ${colAttr}">`
+      + `<span class="cell-edit-value">${rendered}</span>`
+      + `<span class="cell-edit-pencil" aria-hidden="true">✎</span>`
+      + `</button></td>`;
+  }
+
+  function updateEditorCharacterCount() {
+    cellEditorCount.textContent = `${cellEditorText.value.length} ${T.editCharacters}`;
+  }
+
+  function setEditorBusy(busy) {
+    cellEditorText.disabled = busy;
+    btnEditorClose.disabled = busy;
+    btnEditorCancel.disabled = busy;
+    btnEditorSave.disabled = busy;
+    btnEditorSave.textContent = busy ? 'Saving…' : T.editSave;
+  }
+
+  function openTextEditor(idStr, col) {
+    if (!isEditableTextColumn(col)) return;
+    const recordId = validRecordId(idStr);
+    const rec = allRecords.find(r => Number(r.id) === recordId);
+    if (!rec) return;
+    const value = rec[col] == null ? '' : String(rec[col]);
+    editingCell = { recordId, col, originalValue: value };
+    cellEditorTitle.textContent = `${T.editTitle} ${col}`;
+    cellEditorMeta.textContent = `${T.editRecord} ${recordId} · ${selectedTableId}`;
+    cellEditorText.setAttribute('aria-label', `${T.editTitle} ${col}`);
+    cellEditorMeta.classList.remove('error');
+    cellEditorText.value = value;
+    updateEditorCharacterCount();
+    setEditorBusy(false);
+    cellEditor.hidden = false;
+    requestAnimationFrame(() => {
+      cellEditorText.focus();
+      cellEditorText.setSelectionRange(value.length, value.length);
+    });
+  }
+
+  function closeTextEditor() {
+    if (btnEditorSave.disabled) return;
+    cellEditor.hidden = true;
+    editingCell = null;
+    cellEditorText.value = '';
+  }
+
+  async function saveTextEditor() {
+    if (!editingCell || btnEditorSave.disabled) return;
+    const { recordId, col, originalValue } = editingCell;
+    const nextValue = cellEditorText.value;
+    if (nextValue === originalValue) {
+      closeTextEditor();
+      return;
+    }
+    setEditorBusy(true);
+    cellEditorMeta.classList.remove('error');
+    recordActionDiagnostic('Edit', 'start',
+      `record=${recordId} · column=${col} · characters=${nextValue.length}`);
+    try {
+      await grist.selectedTable.update(
+        { id: recordId, fields: { [col]: nextValue } },
+        { parseStrings: false });
+      recordActionDiagnostic('Edit', 'ok',
+        `record=${recordId} · column=${col} · characters=${nextValue.length}`);
+      const current = allRecords.find(r => Number(r.id) === recordId);
+      if (current) current[col] = nextValue;
+      setEditorBusy(false);
+      closeTextEditor();
+      render();
+    } catch (err) {
+      const message = actionErrorMessage('Edit', err);
+      cellEditorMeta.textContent = message;
+      cellEditorMeta.classList.add('error');
+      setEditorBusy(false);
+      cellEditorText.focus();
+    }
   }
 
   function recordActionDiagnostic(action, status, details) {
@@ -625,15 +815,19 @@
       const tableRef = tables.id[tableIndex];
       const columns = await grist.docApi.fetchTable('_grist_Tables_column');
       const result = new Set();
+      const typeMap = {};
       for (let i = 0; i < (columns.id || []).length; i++) {
         const colId = columns.colId[i];
         if (columns.parentId[i] !== tableRef || columns.isFormula[i]) continue;
         if (!colId || colId === 'manualSort' || colId.startsWith('gristHelper_')) continue;
         result.add(colId);
+        typeMap[colId] = columns.type && columns.type[i] ? columns.type[i] : '';
       }
       writableColumnIds = [...result];
+      writableColumnTypes = typeMap;
       recordActionDiagnostic('Metadata', 'ok',
-        `table=${tableId} · writable=${writableColumnIds.join(', ')}`);
+        `table=${tableId} · writable=${writableColumnIds.join(', ')}`
+        + ` · text=${writableColumnIds.filter(col => isTextColumnType(typeMap[col])).join(', ')}`);
       return result;
     })();
     try {
@@ -740,11 +934,30 @@
 
   content.addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-act]');
-    if (!btn || !content.contains(btn) || btn.disabled) return;
-    const idStr = btn.dataset.id;
-    if (btn.dataset.act === 'dup') onDuplicate(btn, idStr);
-    else if (btn.dataset.act === 'del') onDelete(btn, idStr);
+    if (btn && content.contains(btn) && !btn.disabled) {
+      const idStr = btn.dataset.id;
+      if (btn.dataset.act === 'dup') onDuplicate(btn, idStr);
+      else if (btn.dataset.act === 'del') onDelete(btn, idStr);
+      return;
+    }
+    const editBtn = e.target.closest('button[data-edit-id][data-edit-col]');
+    if (editBtn && content.contains(editBtn) && !editBtn.disabled)
+      openTextEditor(editBtn.dataset.editId, editBtn.dataset.editCol);
   });
+
+  cellEditorText.addEventListener('input', updateEditorCharacterCount);
+  cellEditorText.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      saveTextEditor();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      closeTextEditor();
+    }
+  });
+  btnEditorClose.addEventListener('click', closeTextEditor);
+  btnEditorCancel.addEventListener('click', closeTextEditor);
+  btnEditorSave.addEventListener('click', saveTextEditor);
 
   function renderCell(val, col) {
     if (val == null || val === '')

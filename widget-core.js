@@ -12,6 +12,17 @@
       sortCountAsc:    'Count ↑',
       sectionMaxH:     'Max height per group',
       sectionBool:     'True / false display',
+      sectionEditable: 'Editable text columns',
+      editableHint:    'Click an enabled text cell to open the large editor.',
+      editableLoading: 'Loading writable columns…',
+      editableNone:    'No writable Text columns are visible.',
+      editCell:        'Edit text',
+      editTitle:       'Edit',
+      editRecord:      'Record',
+      editCancel:      'Cancel',
+      editSave:        'Save changes',
+      editShortcut:    'Ctrl/Cmd+Enter to save · Esc to cancel',
+      editCharacters:  'characters',
       reset:           'Reset',
       noGroups:        'No groups — choose a grouping column.',
       emptyTitle:      'No column selected',
@@ -62,7 +73,7 @@
       boolFalse: ['✗ false', 'No',    'False', 'false', '0'],
       boolLabels: ['✓ / ✗', 'Yes / No', 'True / False', '● badge', '1 / 0'],
   };
-  const WIDGET_VERSION = '5.6';
+  const WIDGET_VERSION = '5.7';
   const LOCALE = 'en-US';
 
   // ── Dates: Grist sends Date/DateTime as epoch seconds (UTC) ──
@@ -123,6 +134,11 @@
   let writableColumnIdsPromise = null;
   let selectedTableId = 'unknown';
   let writableColumnIds = [];
+  let writableColumnTypes = {};
+  let editableColumns = new Set();
+  let editableColumnsConfigured = false;
+  let editableDefaultsApplied = false;
+  let editingCell = null;
   const actionDiagnostics = [];
   const armedDeletes = new Map();  // id (string) → timeoutId, two-step confirmation
   const selectedIds = new Set();   // ids (string) of checked records
@@ -140,6 +156,15 @@
   const aggFnSelect   = document.getElementById('agg-fn-select');
   const aggColSelect  = document.getElementById('agg-col-select');
   const btnAddAgg     = document.getElementById('btn-add-agg');
+  const editableColList = document.getElementById('editable-col-list');
+  const cellEditor      = document.getElementById('cell-editor');
+  const cellEditorTitle = document.getElementById('cell-editor-title');
+  const cellEditorMeta  = document.getElementById('cell-editor-meta');
+  const cellEditorText  = document.getElementById('cell-editor-text');
+  const cellEditorCount = document.getElementById('cell-editor-count');
+  const btnEditorClose  = document.getElementById('btn-editor-close');
+  const btnEditorCancel = document.getElementById('btn-editor-cancel');
+  const btnEditorSave   = document.getElementById('btn-editor-save');
   let   statGroups    = document.getElementById('stat-groups');
   let   statRecords   = document.getElementById('stat-records');
 
@@ -159,6 +184,8 @@
     document.getElementById('lbl-limitmaxh-txt').textContent     = T.limitMaxH;
     document.getElementById('maxh-range').setAttribute('aria-label', T.sectionMaxH);
     document.getElementById('lbl-bool').textContent              = T.sectionBool;
+    document.getElementById('lbl-editable').textContent          = T.sectionEditable;
+    document.getElementById('editable-hint').textContent         = T.editableHint;
     document.getElementById('lbl-aggregates').textContent        = T.sectionAggregates;
     document.getElementById('btn-add-agg').textContent           = T.aggAdd;
     document.getElementById('agg-fn-select').setAttribute('aria-label', T.aggFnLabel);
@@ -182,6 +209,10 @@
     document.getElementById('btn-sel-clear').textContent = T.selClear;
     document.getElementById('version-badge').textContent = 'v' + WIDGET_VERSION;
     document.getElementById('lbl-diag').textContent = 'Diagnostics';
+    document.getElementById('btn-editor-close').setAttribute('aria-label', T.editCancel);
+    document.getElementById('btn-editor-cancel').textContent = T.editCancel;
+    document.getElementById('btn-editor-save').textContent = T.editSave;
+    document.getElementById('cell-editor-shortcut').textContent = T.editShortcut;
   }
   applyI18nToDOM();
   statGroups  = document.getElementById('stat-groups');
