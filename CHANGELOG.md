@@ -2,6 +2,14 @@
 
 All notable changes to the grist-sprints grouped-view widget.
 
+## v5.6 — 2026-07-30
+
+- Preserve a duplicated record's Grist `manualSort` position so the copy stays
+  beside its source instead of being appended to the bottom of its group.
+- Include special columns only while fetching the source record; formula and
+  helper columns remain excluded from the created payload.
+- Bumped static asset cache keys so the duplicate-order fix loads.
+
 ## v5.5 — 2026-07-30
 
 - Normalize typed Grist values before duplication: Ref cells become row IDs,
