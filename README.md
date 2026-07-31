@@ -19,7 +19,8 @@ Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacos
   UTC date and time without finding the record in the source table
 - **Multi-select bulk actions** — tick row checkboxes (or a group's select-all), then duplicate / delete the whole selection from the bottom action bar
 - **Automatic sums** — every Grist Numeric/Int column shows its group total
-  directly in the column header, including numeric formula columns
+  in the always-visible group header, aligned above its table column, including
+  numeric formula columns
 - **Row count beside every group name**
 - **Null values** collected in an *(empty)* group, sorted last
 - **Cell formatting**: booleans ✓/✗ (several display styles), plain numbers (no thousand separators — `-1425`, not `-1,425`), ISO dates, arrays
@@ -105,10 +106,11 @@ unlimited default (checkbox unticked).
 ## Automatic numeric sums
 
 Every visible Grist **Numeric** or **Int** column automatically shows the sum
-of that group's rows directly beneath the column name. Formula columns are
-included when their declared Grist result type is numeric. The compact total
-contains only the number—there is no `Σ`, function name, or repeated column
-name.
+of that group's rows in the always-visible group header, horizontally aligned
+with its table column. Formula columns are included when their declared Grist
+result type is numeric. The totals remain visible when a group is collapsed.
+Each compact total contains only the number—there is no `Σ`, function name, or
+repeated column name.
 
 Null and empty cells are skipped. Totals are recomputed on every data update
 and rendered without thousands separators (`-14250`, not `-14,250`). The old

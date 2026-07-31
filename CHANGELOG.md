@@ -2,6 +2,15 @@
 
 All notable changes to the grist-sprints grouped-view widget.
 
+## v6.1 — 2026-07-31
+
+- Move automatic numeric sums from the table's column-name row into the
+  always-visible group header.
+- Align each total horizontally with its corresponding table column and keep
+  totals visible while groups are collapsed.
+- Re-align totals after rendering, font loading, and window resizing.
+- Bumped static asset cache keys so the corrected placement loads.
+
 ## v6.0 — 2026-07-31
 
 - Replace configurable aggregate rules with automatic Sum totals for every
