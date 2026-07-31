@@ -250,7 +250,8 @@ Details:
   must be **Full access** (set in the widget's data-selection panel).
 - **Rows cannot be dragged**: the current grouping column must be a writable
   Text or single Choice field and must not contain date-like values. Open
-  ⚙ → **Diagnostics** and check the `drag move:` line.
+  ⚙ → **Diagnostics** and check the `drag move:` line. Attempting to drag a
+  selection-only grip also shows the exact disabled reason in a toast.
 
 ## Hosting
 

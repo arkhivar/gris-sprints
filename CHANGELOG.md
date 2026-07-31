@@ -2,6 +2,19 @@
 
 All notable changes to the grist-sprints grouped-view widget.
 
+## v6.6 — 2026-07-31
+
+- Fix the visible grip extending into a neighboring table cell's pointer area
+  in some layouts by widening and fixing the selection/drag column.
+- Make drag initiation more robust with a larger grip hit area, immediate
+  pressed/grabbed feedback, a lower movement threshold, explicit pointer
+  cleanup, and prevention of native browser drag interference.
+- Track pointer movement even on selection-only grips. If the current grouping
+  is not eligible for moves, a drag attempt now reports the exact reason in a
+  toast and Diagnostics instead of silently doing nothing.
+- Add a detailed disabled reason for read-only, date-bucket, Date/DateTime, and
+  unsupported grouping types, and bump static asset cache keys.
+
 ## v6.5 — 2026-07-31
 
 - Make a plain row-grip click select only that record, clearing the previous
