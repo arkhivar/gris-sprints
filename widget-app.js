@@ -191,6 +191,14 @@
     syncMaxHUI();
   }
 
+  btnResetColumns.addEventListener('click', () => {
+    columnOrder = [...allColumns];
+    columnWidths = {};
+    sharedTableScrollLeft = 0;
+    saveColumnLayout();
+    render();
+  });
+
   // ── 10b. Automatic sums ──────────────────────────────────────
   function isNumericColumnType(type) {
     const base = columnBaseType(type);
@@ -225,9 +233,121 @@
     return Object.is(sum, -0) ? 0 : sum;
   }
 
+  const MIN_COLUMN_WIDTH = 64;
+  const MAX_COLUMN_WIDTH = 520;
+  const SELECT_COLUMN_WIDTH = 38;
+  const ACTIONS_COLUMN_WIDTH = 66;
+  let sharedTableScrollLeft = 0;
+  let syncingTableScroll = false;
+  let draggedColumn = null;
+
+  function clampColumnWidth(width) {
+    return Math.max(MIN_COLUMN_WIDTH, Math.min(MAX_COLUMN_WIDTH, Math.round(width)));
+  }
+
+  function reconcileColumnOrder() {
+    const known = new Set(allColumns);
+    const saved = columnOrder.filter((col, i) =>
+      known.has(col) && columnOrder.indexOf(col) === i);
+    const missing = allColumns.filter(col => !saved.includes(col));
+    columnOrder = [...saved, ...missing];
+  }
+
+  function orderedDisplayColumns(groupCol) {
+    reconcileColumnOrder();
+    return columnOrder.filter(col => col !== groupCol && allColumns.includes(col));
+  }
+
+  function defaultColumnWidth(col) {
+    const type = columnBaseType(columnTypes[col]);
+    if (type === 'Bool') return 72;
+    if (type === 'Numeric' || type === 'Int') return 104;
+    if (type === 'Date') return 120;
+    if (type === 'DateTime') return 174;
+
+    let longest = String(col).length;
+    const sample = allRecords.slice(0, 400);
+    for (const rec of sample) {
+      const value = rec[col];
+      if (value == null || value === '') continue;
+      let text;
+      if (typeof value === 'string') text = value;
+      else if (Array.isArray(value)) text = value.join(', ');
+      else if (typeof value === 'object') {
+        try { text = JSON.stringify(value); } catch (_) { text = String(value); }
+      } else text = String(value);
+      longest = Math.max(longest, Math.min(38, text.length));
+    }
+    return clampColumnWidth(longest * 7.2 + 34);
+  }
+
+  function getColumnWidth(col) {
+    const saved = Number(columnWidths[col]);
+    return Number.isFinite(saved)
+      ? clampColumnWidth(saved)
+      : defaultColumnWidth(col);
+  }
+
+  function getTableWidth(cols) {
+    return SELECT_COLUMN_WIDTH + ACTIONS_COLUMN_WIDTH
+      + cols.reduce((total, col) => total + getColumnWidth(col), 0);
+  }
+
+  function buildColGroup(cols) {
+    return '<colgroup>'
+      + `<col class="layout-col-sel" style="width:${SELECT_COLUMN_WIDTH}px">`
+      + cols.map(col =>
+        `<col data-column="${esc(col)}" style="width:${getColumnWidth(col)}px">`
+      ).join('')
+      + `<col class="layout-col-actions" style="width:${ACTIONS_COLUMN_WIDTH}px">`
+      + '</colgroup>';
+  }
+
+  function saveColumnLayout() {
+    grist.setOption('columnOrder', JSON.stringify(columnOrder));
+    grist.setOption('columnWidths', JSON.stringify(columnWidths));
+  }
+
+  function applyColumnWidthsToDOM() {
+    document.querySelectorAll('.rec-table').forEach(table => {
+      const cols = [...table.querySelectorAll('col[data-column]')];
+      cols.forEach(colEl => {
+        colEl.style.width = `${getColumnWidth(colEl.dataset.column)}px`;
+      });
+      const dataWidth = cols.reduce(
+        (total, colEl) => total + getColumnWidth(colEl.dataset.column), 0);
+      table.style.width =
+        `${SELECT_COLUMN_WIDTH + ACTIONS_COLUMN_WIDTH + dataWidth}px`;
+    });
+    scheduleGroupSumAlignment();
+  }
+
+  function moveColumn(source, target, after) {
+    const groupCol = parseGroupBy(groupBy).col;
+    const display = orderedDisplayColumns(groupCol);
+    const from = display.indexOf(source);
+    if (from < 0) return false;
+    display.splice(from, 1);
+    let to = display.indexOf(target);
+    if (to < 0) return false;
+    if (after) to += 1;
+    display.splice(to, 0, source);
+    const displayed = new Set(display);
+    let displayIndex = 0;
+    columnOrder = columnOrder.map(col =>
+      displayed.has(col) ? display[displayIndex++] : col);
+    saveColumnLayout();
+    render();
+    return true;
+  }
+
   function buildColumnHeader(col) {
-    return `<th scope="col" title="${esc(col)}" data-column="${esc(col)}">`
-      + `<span class="column-name">${esc(col)}</span></th>`;
+    return `<th scope="col" class="column-header" draggable="true" tabindex="0"`
+      + ` title="${esc(col)} — ${esc(T.reorderColumn)}" data-column="${esc(col)}">`
+      + `<span class="column-name">${esc(col)}</span>`
+      + `<span class="column-resize-handle" draggable="false" tabindex="0"`
+      + ` role="separator" aria-orientation="vertical"`
+      + ` aria-label="${esc(T.resizeColumn)} ${esc(col)}"></span></th>`;
   }
 
   function buildGroupSums(records, cols) {
@@ -312,6 +432,14 @@
       ? `automatic sums: ${summedColumns.join(', ')}`
       : 'automatic sums: none';
     list.appendChild(summed);
+    const layout = document.createElement('div');
+    layout.className = 'diag-row';
+    const customWidths = Object.keys(columnWidths)
+      .filter(col => allColumns.includes(col))
+      .map(col => `${col}=${getColumnWidth(col)}px`);
+    layout.textContent = `column order: ${orderedDisplayColumns(parseGroupBy(groupBy).col).join(', ')}`
+      + ` · custom widths: ${customWidths.length ? customWidths.join(', ') : 'none'}`;
+    list.appendChild(layout);
     allColumns.forEach(col => {
       const first = allRecords.map(r => r[col]).find(v => v != null && v !== '');
       const row = document.createElement('div');
@@ -371,6 +499,34 @@
           editableColumns = new Set();
         }
       }
+      if (Object.prototype.hasOwnProperty.call(opts, 'columnOrder')) {
+        try {
+          const value = typeof opts.columnOrder === 'string'
+            ? JSON.parse(opts.columnOrder)
+            : opts.columnOrder;
+          columnOrder = Array.isArray(value)
+            ? value.filter(col => typeof col === 'string')
+            : [];
+        } catch (_) {
+          columnOrder = [];
+        }
+      }
+      if (Object.prototype.hasOwnProperty.call(opts, 'columnWidths')) {
+        try {
+          const value = typeof opts.columnWidths === 'string'
+            ? JSON.parse(opts.columnWidths)
+            : opts.columnWidths;
+          columnWidths = {};
+          if (value && typeof value === 'object' && !Array.isArray(value)) {
+            Object.entries(value).forEach(([col, width]) => {
+              if (typeof col === 'string' && Number.isFinite(Number(width)))
+                columnWidths[col] = clampColumnWidth(Number(width));
+            });
+          }
+        } catch (_) {
+          columnWidths = {};
+        }
+      }
     }
     getWritableColumnIds().then(() => {
       applyEditableColumnDefaults();
@@ -399,6 +555,7 @@
     if (allRecords.length > 0) {
       allColumns = Object.keys(allRecords[0])
         .filter(k => k !== 'id' && k !== 'manualSort');
+      reconcileColumnOrder();
       allColumns.forEach(c => {
         if (isDateLikeColumn(c)) knownDateCols.add(c);
         else knownDateCols.delete(c);
@@ -539,7 +696,7 @@
     emptyState.style.display = 'none';
     const groups      = getGroups();
     const groupCol    = parseGroupBy(groupBy).col;
-    const displayCols = allColumns.filter(c => c !== groupCol);
+    const displayCols = orderedDisplayColumns(groupCol);
 
     statsbar.classList.add('visible');
     statGroups.textContent  = groups.length;
@@ -602,6 +759,9 @@
       card.appendChild(body);
       content.appendChild(card);
     });
+    document.querySelectorAll('.scroll-inner').forEach(scroller => {
+      scroller.scrollLeft = sharedTableScrollLeft;
+    });
     scheduleGroupSumAlignment();
     refreshBoolSection();
   }
@@ -622,12 +782,166 @@
       + `${cols.map(c => renderTableCell(rec, c)).join('')}`
       + `<td class="row-actions">${rowActionsHtml(rec)}</td></tr>`;
     }).join('');
-    return `<div class="scroll-inner"><table class="rec-table">
+    return `<div class="scroll-inner" tabindex="0"><table class="rec-table"`
+      + ` style="width:${getTableWidth(cols)}px">`
+      + `${buildColGroup(cols)}
       <caption>${T.groupCaption} ${esc(groupLabel)}</caption>
       <thead><tr>${thead}</tr></thead>
       <tbody>${tbody}</tbody>
     </table></div>`;
   }
+
+  // Shared column resize, reorder, and horizontal-scroll interactions.
+  let activeColumnResize = null;
+
+  content.addEventListener('pointerdown', (e) => {
+    const handle = e.target.closest('.column-resize-handle');
+    if (!handle) return;
+    const th = handle.closest('th[data-column]');
+    if (!th) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const col = th.dataset.column;
+    activeColumnResize = {
+      col,
+      startX: e.clientX,
+      startWidth: getColumnWidth(col),
+      handle,
+    };
+    handle.classList.add('resizing');
+    th.draggable = false;
+    if (handle.setPointerCapture) handle.setPointerCapture(e.pointerId);
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!activeColumnResize) return;
+    columnWidths[activeColumnResize.col] = clampColumnWidth(
+      activeColumnResize.startWidth + e.clientX - activeColumnResize.startX);
+    applyColumnWidthsToDOM();
+  });
+
+  function finishColumnResize() {
+    if (!activeColumnResize) return;
+    const th = activeColumnResize.handle.closest('th[data-column]');
+    activeColumnResize.handle.classList.remove('resizing');
+    if (th) th.draggable = true;
+    activeColumnResize = null;
+    saveColumnLayout();
+    if (settingsPanel.classList.contains('open')) refreshDiag();
+  }
+
+  window.addEventListener('pointerup', finishColumnResize);
+  window.addEventListener('pointercancel', finishColumnResize);
+
+  content.addEventListener('dblclick', (e) => {
+    const handle = e.target.closest('.column-resize-handle');
+    if (!handle) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const th = handle.closest('th[data-column]');
+    if (!th) return;
+    delete columnWidths[th.dataset.column];
+    saveColumnLayout();
+    render();
+  });
+
+  function clearColumnDropIndicators() {
+    content.querySelectorAll('.column-dragging, .column-drop-before, .column-drop-after')
+      .forEach(th => th.classList.remove(
+        'column-dragging', 'column-drop-before', 'column-drop-after'));
+  }
+
+  content.addEventListener('dragstart', (e) => {
+    if (e.target.closest('.column-resize-handle')) {
+      e.preventDefault();
+      return;
+    }
+    const th = e.target.closest('th.column-header');
+    if (!th) return;
+    draggedColumn = th.dataset.column;
+    th.classList.add('column-dragging');
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', draggedColumn);
+    }
+  });
+
+  content.addEventListener('dragover', (e) => {
+    const th = e.target.closest('th.column-header');
+    if (!th || !draggedColumn || th.dataset.column === draggedColumn) return;
+    e.preventDefault();
+    const rect = th.getBoundingClientRect();
+    const after = e.clientX > rect.left + rect.width / 2;
+    content.querySelectorAll('.column-drop-before, .column-drop-after')
+      .forEach(cell => cell.classList.remove('column-drop-before', 'column-drop-after'));
+    th.classList.add(after ? 'column-drop-after' : 'column-drop-before');
+    th.dataset.dropAfter = String(after);
+  });
+
+  content.addEventListener('drop', (e) => {
+    const th = e.target.closest('th.column-header');
+    if (!th || !draggedColumn) return;
+    e.preventDefault();
+    const source = draggedColumn;
+    const target = th.dataset.column;
+    const after = th.dataset.dropAfter === 'true';
+    draggedColumn = null;
+    clearColumnDropIndicators();
+    if (source !== target) moveColumn(source, target, after);
+  });
+
+  content.addEventListener('dragend', () => {
+    draggedColumn = null;
+    clearColumnDropIndicators();
+  });
+
+  content.addEventListener('keydown', (e) => {
+    const handle = e.target.closest('.column-resize-handle');
+    if (handle && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+      e.preventDefault();
+      e.stopPropagation();
+      const th = handle.closest('th[data-column]');
+      const col = th.dataset.column;
+      const step = e.shiftKey ? 25 : 10;
+      columnWidths[col] = clampColumnWidth(
+        getColumnWidth(col) + (e.key === 'ArrowRight' ? step : -step));
+      saveColumnLayout();
+      applyColumnWidthsToDOM();
+      return;
+    }
+    if (handle && (e.key === 'Home' || e.key === 'Delete')) {
+      e.preventDefault();
+      e.stopPropagation();
+      const th = handle.closest('th[data-column]');
+      delete columnWidths[th.dataset.column];
+      saveColumnLayout();
+      render();
+      return;
+    }
+    const th = e.target.closest('th.column-header');
+    if (!th || !e.altKey || !['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+    e.preventDefault();
+    const groupCol = parseGroupBy(groupBy).col;
+    const display = orderedDisplayColumns(groupCol);
+    const index = display.indexOf(th.dataset.column);
+    const targetIndex = index + (e.key === 'ArrowRight' ? 1 : -1);
+    if (index < 0 || targetIndex < 0 || targetIndex >= display.length) return;
+    moveColumn(th.dataset.column, display[targetIndex], e.key === 'ArrowRight');
+  });
+
+  content.addEventListener('scroll', (e) => {
+    const scroller = e.target;
+    if (!scroller.classList || !scroller.classList.contains('scroll-inner')) return;
+    if (syncingTableScroll) return;
+    if (Math.abs(scroller.scrollLeft - sharedTableScrollLeft) < 1) return;
+    sharedTableScrollLeft = scroller.scrollLeft;
+    syncingTableScroll = true;
+    content.querySelectorAll('.scroll-inner').forEach(other => {
+      if (other !== scroller) other.scrollLeft = sharedTableScrollLeft;
+    });
+    syncingTableScroll = false;
+    scheduleGroupSumAlignment();
+  }, true);
 
   // Per-row actions cell: duplicate ⧉ / delete ✕
   // (always visible, dimmed at rest; full opacity on hover / focus).

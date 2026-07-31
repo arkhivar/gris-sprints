@@ -2,6 +2,21 @@
 
 All notable changes to the grist-sprints grouped-view widget.
 
+## v6.2 — 2026-07-31
+
+- Give every group one shared column layout so headers, values, and automatic
+  sums stay aligned regardless of long cell content.
+- Add drag handles to resize columns across all groups, with 64–520px limits
+  and double-click/keyboard reset support.
+- Add header drag-and-drop and Alt+Arrow keyboard controls to reorder columns
+  across all groups.
+- Persist column widths and order through Grist options and add a
+  **Reset widths & order** control in settings.
+- Synchronize horizontal scrolling between groups and keep automatic sum chips
+  aligned with scrolled numeric columns.
+- Extend Diagnostics with current order and custom widths.
+- Bumped static asset cache keys so the shared layout loads.
+
 ## v6.1 — 2026-07-31
 
 - Move automatic numeric sums from the table's column-name row into the

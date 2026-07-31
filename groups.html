@@ -6,7 +6,7 @@
   <title>Grouped view — Grist widget</title>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="widget.css?v=6.1">
+  <link rel="stylesheet" href="widget.css?v=6.2">
 </head>
 <body>
 <div id="app">
@@ -68,6 +68,12 @@
       <p class="setting-section-title" id="lbl-bool">True / false display</p>
       <div class="bool-row" id="bool-row"
            role="radiogroup" aria-labelledby="lbl-bool"></div>
+    </div>
+
+    <div>
+      <p class="setting-section-title" id="lbl-column-layout">Column layout</p>
+      <p class="setting-help" id="column-layout-hint">Drag headers to reorder. Drag a header edge to resize; double-click the edge to reset that column.</p>
+      <button class="btn" id="btn-reset-columns" type="button">Reset widths &amp; order</button>
     </div>
 
     <div>
@@ -140,8 +146,8 @@
   </section>
 </div>
 
-<script src="widget-core.js?v=6.1"></script>
-  <script src="widget-app.js?v=6.1"></script>
-  <script src="widget-actions.js?v=6.1"></script>
+<script src="widget-core.js?v=6.2"></script>
+  <script src="widget-app.js?v=6.2"></script>
+  <script src="widget-actions.js?v=6.2"></script>
 </body>
 </html>

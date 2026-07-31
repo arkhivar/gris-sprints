@@ -13,6 +13,11 @@
       sectionMaxH:     'Max height per group',
       sectionBool:     'True / false display',
       sectionEditable: 'Editable fields',
+      sectionColumns:  'Column layout',
+      columnLayoutHint: 'Drag headers to reorder. Drag a header edge to resize; double-click the edge to reset that column.',
+      resetColumns:    'Reset widths & order',
+      resizeColumn:    'Resize column',
+      reorderColumn:   'Drag to reorder column',
       editableHint:    'Choose Text fields. Writable DateTime fields are enabled automatically.',
       editableLoading: 'Loading writable columns…',
       editableNone:    'No writable Text or DateTime fields are visible.',
@@ -66,7 +71,7 @@
       boolFalse: ['✗ false', 'No',    'False', 'false', '0'],
       boolLabels: ['✓ / ✗', 'Yes / No', 'True / False', '● badge', '1 / 0'],
   };
-  const WIDGET_VERSION = '6.1';
+  const WIDGET_VERSION = '6.2';
   const LOCALE = 'en-US';
 
   // ── Dates: Grist sends Date/DateTime as epoch seconds (UTC) ──
@@ -114,6 +119,8 @@
   let writableColumnIds = [];
   let writableColumnTypes = {};
   let columnTypes = {};
+  let columnOrder = [];
+  let columnWidths = {};
   let editableColumns = new Set();
   let editableColumnsConfigured = false;
   let editableDefaultsApplied = false;
@@ -132,6 +139,7 @@
   const btnSettings   = document.getElementById('btn-settings');
   const boolRow       = document.getElementById('bool-row');
   const editableColList = document.getElementById('editable-col-list');
+  const btnResetColumns = document.getElementById('btn-reset-columns');
   const cellEditor      = document.getElementById('cell-editor');
   const cellEditorDialog = document.getElementById('cell-editor-dialog');
   const cellEditorTitle = document.getElementById('cell-editor-title');
@@ -164,6 +172,9 @@
     document.getElementById('lbl-bool').textContent              = T.sectionBool;
     document.getElementById('lbl-editable').textContent          = T.sectionEditable;
     document.getElementById('editable-hint').textContent         = T.editableHint;
+    document.getElementById('lbl-column-layout').textContent     = T.sectionColumns;
+    document.getElementById('column-layout-hint').textContent    = T.columnLayoutHint;
+    document.getElementById('btn-reset-columns').textContent     = T.resetColumns;
     document.documentElement.lang = 'en';
     document.getElementById('btn-reset-maxh').textContent        = T.reset;
     document.getElementById('btn-reset-maxh').setAttribute('aria-label', T.resetMaxH);
