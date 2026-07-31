@@ -66,12 +66,16 @@
       selDel:          'Delete selected',
       selClear:        'Clear',
       selAll:          'Select all',
+      rowGrip:         'Select or drag record',
+      rowSelect:       'Select record',
+      selectGroup:     'Select all records in this group',
+      moveRecords:     'Move records',
       confirmDelSel:   'Confirm deleting the selection?',
       boolTrue:  ['✓ true',  'Yes',   'True',  'true',  '1'],
       boolFalse: ['✗ false', 'No',    'False', 'false', '0'],
       boolLabels: ['✓ / ✗', 'Yes / No', 'True / False', '● badge', '1 / 0'],
   };
-  const WIDGET_VERSION = '6.3';
+  const WIDGET_VERSION = '6.4';
   const LOCALE = 'en-US';
 
   // ── Dates: Grist sends Date/DateTime as epoch seconds (UTC) ──

@@ -1,8 +1,5 @@
-  // ── 15. Multi-select — bulk action bar ──
-  // Loaded after widget-app.js: shares the top-level bindings
-  // (allRecords, selectedIds, content, grist, T, esc, showToast…).
-  // DO NOT redeclare these names. NB: `app` did not exist at top level
-  // (only a local variable in applyMaxGroupH), so it is created here.
+  // ── 15. Unified selection, dragging, and bulk actions ─────
+  // Loaded after widget-app.js: shares its top-level bindings.
   const app          = document.getElementById('app');
   const selBar       = document.getElementById('sel-bar');
   const selCountTxt  = document.getElementById('sel-count-txt');
@@ -10,7 +7,6 @@
   const btnSelDel    = document.getElementById('btn-sel-del');
   const btnSelClear  = document.getElementById('btn-sel-clear');
 
-  // Show / hide the bar based on the selection state.
   function updateSelBar() {
     if (selectedIds.size === 0) {
       selBar.classList.remove('visible');
@@ -22,67 +18,278 @@
     }
   }
 
-  // Sync each table's "select all" checkbox:
-  // checked if all rows are, indeterminate if only some.
-  function refreshHeaderCbs() {
+  function refreshSelectionControls() {
+    content.querySelectorAll('.row-grip[data-id]').forEach(grip => {
+      const selected = selectedIds.has(grip.dataset.id);
+      grip.setAttribute('aria-pressed', String(selected));
+      const row = grip.closest('tr');
+      if (row) row.classList.toggle('row-selected', selected);
+    });
+
     content.querySelectorAll('.rec-table').forEach(table => {
-      const head = table.querySelector('.sel-cb-all');
-      if (!head) return;
-      const rows = Array.from(table.querySelectorAll('tbody .sel-cb-row'));
-      const nbChecked = rows.filter(cb => cb.checked).length;
-      head.checked       = rows.length > 0 && nbChecked === rows.length;
-      head.indeterminate = nbChecked > 0 && nbChecked < rows.length;
+      const groupGrip = table.querySelector('.group-select-grip');
+      if (!groupGrip) return;
+      const rowGrips = [...table.querySelectorAll('tbody .row-grip[data-id]')];
+      const selectedCount = rowGrips
+        .filter(grip => selectedIds.has(grip.dataset.id)).length;
+      const state = selectedCount === 0
+        ? 'none'
+        : (selectedCount === rowGrips.length ? 'all' : 'some');
+      groupGrip.dataset.selectionState = state;
+      groupGrip.setAttribute('aria-pressed',
+        state === 'all' ? 'true' : (state === 'some' ? 'mixed' : 'false'));
     });
   }
 
-  // Delegate checkbox changes on #content.
-  content.addEventListener('change', (e) => {
-    const cb = e.target;
-    if (!(cb instanceof HTMLInputElement) || cb.type !== 'checkbox') return;
+  function setRowSelected(id, selected) {
+    if (selected) selectedIds.add(id);
+    else selectedIds.delete(id);
+    refreshSelectionControls();
+    updateSelBar();
+  }
 
-    if (cb.classList.contains('sel-cb-row')) {
-      // Row checkbox: update the Set + highlight the row
-      const id = cb.dataset.id;
-      if (cb.checked) selectedIds.add(id);
-      else            selectedIds.delete(id);
-      const tr = cb.closest('tr');
-      if (tr) tr.classList.toggle('row-selected', cb.checked);
-      refreshHeaderCbs();
-      updateSelBar();
-    } else if (cb.classList.contains('sel-cb-all')) {
-      // Header checkbox: (un)check all rows of THIS table
-      const table = cb.closest('table');
-      if (!table) return;
-      table.querySelectorAll('tbody .sel-cb-row').forEach(rowCb => {
-        rowCb.checked = cb.checked;
-        if (cb.checked) selectedIds.add(rowCb.dataset.id);
-        else            selectedIds.delete(rowCb.dataset.id);
-        const tr = rowCb.closest('tr');
-        if (tr) tr.classList.toggle('row-selected', cb.checked);
-      });
-      refreshHeaderCbs();
-      updateSelBar();
+  const suppressedGripClicks = new Set();
+
+  content.addEventListener('click', (e) => {
+    const rowGrip = e.target.closest('.row-grip[data-id]');
+    if (rowGrip) {
+      e.preventDefault();
+      e.stopPropagation();
+      const id = rowGrip.dataset.id;
+      if (suppressedGripClicks.has(id)) {
+        suppressedGripClicks.delete(id);
+        return;
+      }
+      setRowSelected(id, !selectedIds.has(id));
+      return;
+    }
+
+    const groupGrip = e.target.closest('.group-select-grip');
+    if (!groupGrip) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const table = groupGrip.closest('table');
+    if (!table) return;
+    const rowGrips = [...table.querySelectorAll('tbody .row-grip[data-id]')];
+    const selectAll = !rowGrips.every(grip => selectedIds.has(grip.dataset.id));
+    rowGrips.forEach(grip => {
+      if (selectAll) selectedIds.add(grip.dataset.id);
+      else selectedIds.delete(grip.dataset.id);
+    });
+    refreshSelectionControls();
+    updateSelBar();
+  });
+
+  function setSelBarDisabled(disabled) {
+    [btnSelDup, btnSelDel, btnSelClear].forEach(button => {
+      button.disabled = disabled;
+    });
+  }
+
+  // ── Drag records between compatible groups ────────────────
+  const ROW_DRAG_THRESHOLD = 6;
+  let pendingRowPointer = null;
+  let activeRowDrag = null;
+
+  function draggedRecordIds(id) {
+    const ids = selectedIds.has(id) ? [...selectedIds] : [id];
+    const present = new Set(allRecords.map(record => String(record.id)));
+    return ids.filter(candidate => present.has(candidate));
+  }
+
+  function canDropOnGroup(card, ids, context) {
+    const targetKey = card.dataset.groupKey;
+    return ids.some(id => {
+      const record = allRecords.find(item => String(item.id) === id);
+      return record && movableRecordGroupKey(record, context.col) !== targetKey;
+    });
+  }
+
+  function updateRowDropTarget(clientX, clientY) {
+    if (!activeRowDrag) return;
+    const element = document.elementFromPoint(clientX, clientY);
+    const target = element && element.closest('.group.group-drop-valid');
+    if (activeRowDrag.target === target) return;
+    if (activeRowDrag.target)
+      activeRowDrag.target.classList.remove('group-drop-target');
+    activeRowDrag.target = target || null;
+    if (target) target.classList.add('group-drop-target');
+  }
+
+  function updateDragPreview(clientX, clientY) {
+    if (!activeRowDrag) return;
+    activeRowDrag.lastX = clientX;
+    activeRowDrag.lastY = clientY;
+    activeRowDrag.preview.style.transform =
+      `translate(${Math.round(clientX + 14)}px, ${Math.round(clientY + 12)}px)`;
+    const edge = Math.min(80, window.innerHeight * .15);
+    if (clientY < edge)
+      activeRowDrag.scrollSpeed = -Math.ceil((edge - clientY) / 7);
+    else if (clientY > window.innerHeight - edge)
+      activeRowDrag.scrollSpeed =
+        Math.ceil((clientY - (window.innerHeight - edge)) / 7);
+    else
+      activeRowDrag.scrollSpeed = 0;
+    updateRowDropTarget(clientX, clientY);
+  }
+
+  function beginRowDrag(pointer, event) {
+    const context = getRecordMoveContext();
+    if (!context.enabled) return false;
+    const ids = draggedRecordIds(pointer.id);
+    if (!ids.length) return false;
+
+    const preview = document.createElement('div');
+    preview.className = 'row-drag-preview';
+    preview.setAttribute('role', 'status');
+    preview.textContent = ids.length === 1
+      ? 'Move 1 record'
+      : `Move ${ids.length} records`;
+    document.body.appendChild(preview);
+
+    activeRowDrag = {
+      pointerId: pointer.pointerId,
+      handle: pointer.handle,
+      ids,
+      context,
+      preview,
+      target: null,
+      lastX: event.clientX,
+      lastY: event.clientY,
+      scrollSpeed: 0,
+      scrollTimer: null,
+    };
+    pendingRowPointer = null;
+    document.body.classList.add('row-drag-active');
+    pointer.handle.classList.add('dragging');
+    const draggedSet = new Set(ids);
+    content.querySelectorAll('tr[data-record-id]').forEach(row =>
+      row.classList.toggle('row-drag-source', draggedSet.has(row.dataset.recordId)));
+    content.querySelectorAll('.group[data-group-key]').forEach(card => {
+      const valid = canDropOnGroup(card, ids, context);
+      card.classList.toggle('group-drop-valid', valid);
+      card.classList.toggle('group-drop-invalid', !valid);
+    });
+    activeRowDrag.scrollTimer = setInterval(() => {
+      if (!activeRowDrag || !activeRowDrag.scrollSpeed) return;
+      window.scrollBy(0, activeRowDrag.scrollSpeed);
+      updateRowDropTarget(activeRowDrag.lastX, activeRowDrag.lastY);
+    }, 16);
+    updateDragPreview(event.clientX, event.clientY);
+    return true;
+  }
+
+  function cleanupRowDrag() {
+    const drag = activeRowDrag;
+    if (!drag) return;
+    clearInterval(drag.scrollTimer);
+    if (drag.handle.releasePointerCapture) {
+      try { drag.handle.releasePointerCapture(drag.pointerId); } catch (_) {}
+    }
+    drag.preview.remove();
+    drag.handle.classList.remove('dragging');
+    document.body.classList.remove('row-drag-active');
+    content.querySelectorAll(
+      '.row-drag-source, .group-drop-valid, .group-drop-invalid, .group-drop-target'
+    ).forEach(element => element.classList.remove(
+      'row-drag-source', 'group-drop-valid', 'group-drop-invalid', 'group-drop-target'
+    ));
+    activeRowDrag = null;
+  }
+
+  content.addEventListener('pointerdown', (e) => {
+    const handle = e.target.closest('.row-grip[data-id]');
+    if (!handle || handle.dataset.dragEnabled !== 'true') return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (activeRowDrag) cleanupRowDrag();
+    pendingRowPointer = {
+      pointerId: e.pointerId,
+      id: handle.dataset.id,
+      handle,
+      startX: e.clientX,
+      startY: e.clientY,
+    };
+    if (handle.setPointerCapture) {
+      try { handle.setPointerCapture(e.pointerId); } catch (_) {}
     }
   });
 
-  // Enable / disable the bar buttons during a bulk action.
-  function setSelBarDisabled(disabled) {
-    [btnSelDup, btnSelDel, btnSelClear].forEach(b => { b.disabled = disabled; });
-  }
+  window.addEventListener('pointermove', (e) => {
+    if (pendingRowPointer && e.pointerId === pendingRowPointer.pointerId) {
+      const distance = Math.hypot(
+        e.clientX - pendingRowPointer.startX,
+        e.clientY - pendingRowPointer.startY);
+      if (distance >= ROW_DRAG_THRESHOLD)
+        beginRowDrag(pendingRowPointer, e);
+    }
+    if (!activeRowDrag || e.pointerId !== activeRowDrag.pointerId) return;
+    e.preventDefault();
+    updateDragPreview(e.clientX, e.clientY);
+  }, { passive: false });
 
-  // ── Bulk duplicate ──
-  // Sequential (await in a loop) to preserve order and simplify
-  // error handling. Grist will send onRecords → re-render.
+  window.addEventListener('pointerup', (e) => {
+    if (pendingRowPointer && e.pointerId === pendingRowPointer.pointerId) {
+      if (pendingRowPointer.handle.releasePointerCapture) {
+        try {
+          pendingRowPointer.handle.releasePointerCapture(e.pointerId);
+        } catch (_) {}
+      }
+      pendingRowPointer = null;
+      return;
+    }
+    if (!activeRowDrag || e.pointerId !== activeRowDrag.pointerId) return;
+    e.preventDefault();
+    const drag = activeRowDrag;
+    const target = drag.target;
+    suppressedGripClicks.add(drag.handle.dataset.id);
+    setTimeout(() => suppressedGripClicks.delete(drag.handle.dataset.id), 500);
+    cleanupRowDrag();
+    if (!target) return;
+
+    const targetKey = target.dataset.groupKey;
+    target.classList.add('group-drop-saving');
+    setSelBarDisabled(true);
+    moveRecordsToGroup(drag.ids, targetKey).then(result => {
+      if (result.moved) {
+        const noun = result.moved === 1 ? 'record' : 'records';
+        showToast(`Moved ${result.moved} ${noun} to ${result.label}`, 'success');
+      }
+    }).catch(err => {
+      showToast(actionErrorMessage(T.moveRecords, err));
+    }).finally(() => {
+      if (target.isConnected) target.classList.remove('group-drop-saving');
+      setSelBarDisabled(false);
+    });
+  }, { passive: false });
+
+  window.addEventListener('pointercancel', (e) => {
+    if (pendingRowPointer && e.pointerId === pendingRowPointer.pointerId)
+      pendingRowPointer = null;
+    if (activeRowDrag && e.pointerId === activeRowDrag.pointerId)
+      cleanupRowDrag();
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !activeRowDrag) return;
+    e.preventDefault();
+    const id = activeRowDrag.handle.dataset.id;
+    suppressedGripClicks.add(id);
+    setTimeout(() => suppressedGripClicks.delete(id), 500);
+    cleanupRowDrag();
+  });
+
+  // ── Bulk duplicate ────────────────────────────────────────
   btnSelDup.addEventListener('click', async () => {
     if (selectedIds.size === 0) return;
     setSelBarDisabled(true);
     try {
       for (const idStr of [...selectedIds]) {
-        const rec = allRecords.find(r => String(r.id) === idStr);
+        const rec = allRecords.find(record => String(record.id) === idStr);
         if (!rec) continue;
         await duplicateRecordById(idStr);
       }
       selectedIds.clear();
+      refreshSelectionControls();
       updateSelBar();
     } catch (err) {
       showToast(actionErrorMessage('Duplicate selection', err));
@@ -91,7 +298,7 @@
     }
   });
 
-  // ── Bulk delete (two-step confirmation, like onDelete) ──
+  // ── Bulk delete (two-step confirmation) ───────────────────
   let selDelArmTimer = null;
 
   function disarmSelDelete() {
@@ -105,7 +312,6 @@
 
   btnSelDel.addEventListener('click', async () => {
     if (selectedIds.size === 0) return;
-    // First click: arm (auto-disarm after ~4 s).
     if (!btnSelDel.classList.contains('armed')) {
       btnSelDel.classList.add('armed');
       btnSelDel.textContent = '?';
@@ -114,7 +320,6 @@
       selDelArmTimer = setTimeout(disarmSelDelete, 4000);
       return;
     }
-    // Second click: execute.
     disarmSelDelete();
     setSelBarDisabled(true);
     try {
@@ -123,20 +328,15 @@
       showToast(actionErrorMessage('Delete selection', err));
     } finally {
       selectedIds.clear();
+      refreshSelectionControls();
       updateSelBar();
       setSelBarDisabled(false);
     }
   });
 
-  // ── Clear the selection ──
   btnSelClear.addEventListener('click', () => {
     selectedIds.clear();
-    content.querySelectorAll('.sel-cb').forEach(cb => {
-      cb.checked = false;
-      cb.indeterminate = false;
-    });
-    content.querySelectorAll('.row-selected').forEach(tr =>
-      tr.classList.remove('row-selected'));
+    refreshSelectionControls();
     disarmSelDelete();
     updateSelBar();
   });
