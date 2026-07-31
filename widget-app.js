@@ -225,16 +225,51 @@
     return Object.is(sum, -0) ? 0 : sum;
   }
 
-  function buildColumnHeader(col, records) {
-    const name = `<span class="column-name">${esc(col)}</span>`;
-    if (!isNumericColumn(col))
-      return `<th scope="col" title="${esc(col)}">${name}</th>`;
-    const sum = sumColumn(records, col);
-    const text = sum == null ? '—' : String(sum);
-    return `<th scope="col" class="column-numeric" title="${esc(col)}">`
-      + `${name}<span class="column-sum" title="Sum of ${esc(col)}"`
-      + ` aria-label="Sum of ${esc(col)}: ${esc(text)}">${esc(text)}</span></th>`;
+  function buildColumnHeader(col) {
+    return `<th scope="col" title="${esc(col)}" data-column="${esc(col)}">`
+      + `<span class="column-name">${esc(col)}</span></th>`;
   }
+
+  function buildGroupSums(records, cols) {
+    const sums = cols.filter(isNumericColumn).map(col => {
+      const sum = sumColumn(records, col);
+      const text = sum == null ? '—' : String(sum);
+      return `<span class="group-sum" data-column="${esc(col)}"`
+        + ` title="Sum of ${esc(col)}" aria-label="Sum of ${esc(col)}: ${esc(text)}"`
+        + `>${esc(text)}</span>`;
+    });
+    return sums.length ? `<span class="group-sums">${sums.join('')}</span>` : '';
+  }
+
+  let groupSumAlignFrame = 0;
+
+  function alignGroupSums() {
+    groupSumAlignFrame = 0;
+    document.querySelectorAll('.group').forEach(card => {
+      const header = card.querySelector('.group-header');
+      if (!header) return;
+      const headerRect = header.getBoundingClientRect();
+      const headerCells = new Map(
+        [...card.querySelectorAll('.rec-table thead th[data-column]')]
+          .map(th => [th.dataset.column, th])
+      );
+      card.querySelectorAll('.group-sum').forEach(sum => {
+        const th = headerCells.get(sum.dataset.column);
+        if (!th) return;
+        const cellRect = th.getBoundingClientRect();
+        sum.style.left = `${cellRect.left + cellRect.width / 2 - headerRect.left}px`;
+      });
+    });
+  }
+
+  function scheduleGroupSumAlignment() {
+    if (groupSumAlignFrame) cancelAnimationFrame(groupSumAlignFrame);
+    groupSumAlignFrame = requestAnimationFrame(alignGroupSums);
+  }
+
+  window.addEventListener('resize', scheduleGroupSumAlignment);
+  if (document.fonts && document.fonts.ready)
+    document.fonts.ready.then(scheduleGroupSumAlignment);
 
   // Diagnostics: per-column type detection + first raw value shown with
   // JSON.stringify so invisible characters appear as \uXXXX escapes.
@@ -535,7 +570,8 @@
         <span class="group-badge"
               aria-label="${group.records.length}\u00a0${group.records.length > 1 ? T.records : T.record}"
         >${group.records.length}</span>
-        <span class="${labelCls}">${labelTxt}</span>`;
+        <span class="${labelCls}">${labelTxt}</span>
+        ${buildGroupSums(group.records, displayCols)}`;
 
       header.addEventListener('click', () => {
         if (collapsed.has(group.key)) {
@@ -566,6 +602,7 @@
       card.appendChild(body);
       content.appendChild(card);
     });
+    scheduleGroupSumAlignment();
     refreshBoolSection();
   }
 
@@ -573,7 +610,7 @@
     // Multi-select column first, actions column last
     const thead = '<th class="col-sel"><input type="checkbox" class="sel-cb sel-cb-all"'
                 + ` aria-label="${esc(T.selAll)}"></th>`
-                + cols.map(c => buildColumnHeader(c, records)).join('')
+                + cols.map(c => buildColumnHeader(c)).join('')
                 + '<th class="col-actions" aria-hidden="true"></th>';
     const tbody = records.map(rec => {
       const idStr = String(rec.id);
