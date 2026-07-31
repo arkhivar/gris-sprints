@@ -129,7 +129,7 @@
   }
 
   // ── Drag records between compatible groups ────────────────
-  const ROW_DRAG_THRESHOLD = 6;
+  const ROW_DRAG_THRESHOLD = 4;
   let pendingRowPointer = null;
   let activeRowDrag = null;
 
@@ -183,7 +183,12 @@
 
   function beginRowDrag(pointer, event) {
     const context = getRecordMoveContext();
-    if (!context.enabled) return false;
+    if (!context.enabled) {
+      recordActionDiagnostic('Drag gesture', 'error',
+        `record=${pointer.id} · ${context.reason}`);
+      showToast(`Drag unavailable — ${context.reason}`);
+      return false;
+    }
     const ids = draggedRecordIds(pointer.id, pointer.additive);
     if (!ids.length) return false;
 
@@ -209,6 +214,7 @@
     };
     pendingRowPointer = null;
     document.body.classList.add('row-drag-active');
+    pointer.handle.classList.remove('drag-armed');
     pointer.handle.classList.add('dragging');
     const draggedSet = new Set(ids);
     content.querySelectorAll('tr[data-record-id]').forEach(row =>
@@ -227,6 +233,22 @@
     return true;
   }
 
+  function suppressGripClick(id) {
+    suppressedGripClicks.add(id);
+    setTimeout(() => suppressedGripClicks.delete(id), 500);
+  }
+
+  function clearPendingRowPointer(pointerId, suppressClick = false) {
+    const pointer = pendingRowPointer;
+    if (!pointer || (pointerId != null && pointer.pointerId !== pointerId)) return;
+    if (suppressClick) suppressGripClick(pointer.id);
+    pointer.handle.classList.remove('drag-armed');
+    if (pointer.handle.releasePointerCapture) {
+      try { pointer.handle.releasePointerCapture(pointer.pointerId); } catch (_) {}
+    }
+    pendingRowPointer = null;
+  }
+
   function cleanupRowDrag() {
     const drag = activeRowDrag;
     if (!drag) return;
@@ -235,7 +257,7 @@
       try { drag.handle.releasePointerCapture(drag.pointerId); } catch (_) {}
     }
     drag.preview.remove();
-    drag.handle.classList.remove('dragging');
+    drag.handle.classList.remove('drag-armed', 'dragging');
     document.body.classList.remove('row-drag-active');
     content.querySelectorAll(
       '.row-drag-source, .group-drop-valid, .group-drop-invalid, .group-drop-target'
@@ -247,9 +269,10 @@
 
   content.addEventListener('pointerdown', (e) => {
     const handle = e.target.closest('.row-grip[data-id]');
-    if (!handle || handle.dataset.dragEnabled !== 'true') return;
+    if (!handle) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     if (activeRowDrag) cleanupRowDrag();
+    clearPendingRowPointer(null);
     pendingRowPointer = {
       pointerId: e.pointerId,
       id: handle.dataset.id,
@@ -258,9 +281,15 @@
       startY: e.clientY,
       additive: e.ctrlKey || e.metaKey,
     };
+    if (handle.dataset.dragEnabled === 'true')
+      handle.classList.add('drag-armed');
     if (handle.setPointerCapture) {
       try { handle.setPointerCapture(e.pointerId); } catch (_) {}
     }
+  });
+
+  content.addEventListener('dragstart', (e) => {
+    if (e.target.closest('.row-grip[data-id]')) e.preventDefault();
   });
 
   window.addEventListener('pointermove', (e) => {
@@ -268,8 +297,11 @@
       const distance = Math.hypot(
         e.clientX - pendingRowPointer.startX,
         e.clientY - pendingRowPointer.startY);
-      if (distance >= ROW_DRAG_THRESHOLD)
-        beginRowDrag(pendingRowPointer, e);
+      if (distance >= ROW_DRAG_THRESHOLD) {
+        const pointer = pendingRowPointer;
+        if (!beginRowDrag(pointer, e))
+          clearPendingRowPointer(pointer.pointerId, true);
+      }
     }
     if (!activeRowDrag || e.pointerId !== activeRowDrag.pointerId) return;
     e.preventDefault();
@@ -278,20 +310,14 @@
 
   window.addEventListener('pointerup', (e) => {
     if (pendingRowPointer && e.pointerId === pendingRowPointer.pointerId) {
-      if (pendingRowPointer.handle.releasePointerCapture) {
-        try {
-          pendingRowPointer.handle.releasePointerCapture(e.pointerId);
-        } catch (_) {}
-      }
-      pendingRowPointer = null;
+      clearPendingRowPointer(e.pointerId);
       return;
     }
     if (!activeRowDrag || e.pointerId !== activeRowDrag.pointerId) return;
     e.preventDefault();
     const drag = activeRowDrag;
     const target = drag.target;
-    suppressedGripClicks.add(drag.handle.dataset.id);
-    setTimeout(() => suppressedGripClicks.delete(drag.handle.dataset.id), 500);
+    suppressGripClick(drag.handle.dataset.id);
     cleanupRowDrag();
     if (!target) return;
 
@@ -313,7 +339,7 @@
 
   window.addEventListener('pointercancel', (e) => {
     if (pendingRowPointer && e.pointerId === pendingRowPointer.pointerId)
-      pendingRowPointer = null;
+      clearPendingRowPointer(e.pointerId);
     if (activeRowDrag && e.pointerId === activeRowDrag.pointerId)
       cleanupRowDrag();
   });
@@ -322,8 +348,7 @@
     if (e.key !== 'Escape' || !activeRowDrag) return;
     e.preventDefault();
     const id = activeRowDrag.handle.dataset.id;
-    suppressedGripClicks.add(id);
-    setTimeout(() => suppressedGripClicks.delete(id), 500);
+    suppressGripClick(id);
     cleanupRowDrag();
   });
 

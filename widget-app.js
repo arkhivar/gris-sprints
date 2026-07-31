@@ -26,12 +26,20 @@
   function getRecordMoveContext() {
     const { col, granularity } = parseGroupBy(groupBy);
     const type = columnBaseType(writableColumnTypes[col] || columnTypes[col]);
-    const enabled = !!col
-      && !granularity
-      && writableColumnIds.includes(col)
-      && (type === 'Text' || type === 'Choice')
-      && !isDateLikeColumn(col);
-    return { enabled, col, type, granularity };
+    let reason = '';
+    if (!col)
+      reason = 'Choose a grouping column first';
+    else if (granularity)
+      reason = 'Moving records between date buckets is not supported yet';
+    else if (!writableColumnIds.length && selectedTableId === 'unknown')
+      reason = 'Table permissions are still loading; try again in a moment';
+    else if (!writableColumnIds.includes(col))
+      reason = `The grouping column "${col}" is read-only`;
+    else if (isDateLikeColumn(col))
+      reason = 'Moving records between Date/DateTime groups is not supported yet';
+    else if (type !== 'Text' && type !== 'Choice')
+      reason = `The grouping column must be Text or Choice, not ${type || 'an unknown type'}`;
+    return { enabled: !reason, col, type, granularity, reason };
   }
 
   function editableTextCandidates() {
@@ -246,7 +254,7 @@
 
   const MIN_COLUMN_WIDTH = 64;
   const MAX_COLUMN_WIDTH = 520;
-  const SELECT_COLUMN_WIDTH = 38;
+  const SELECT_COLUMN_WIDTH = 46;
   const ACTIONS_COLUMN_WIDTH = 66;
   let sharedTableScrollLeft = 0;
   let syncingTableScroll = false;
@@ -547,7 +555,8 @@
       ? `drag move: enabled · ${moveContext.col} · ${moveContext.type}`
       : `drag move: disabled · group=${groupBy || '(none)'}`
         + ` · type=${moveContext.type || 'unknown'}`
-        + ` · writable=${moveContext.col ? writableColumnIds.includes(moveContext.col) : false}`;
+        + ` · writable=${moveContext.col ? writableColumnIds.includes(moveContext.col) : false}`
+        + ` · reason=${moveContext.reason}`;
     list.appendChild(move);
     const summed = document.createElement('div');
     summed.className = 'diag-row';
@@ -923,7 +932,8 @@
                 + `${gripIconHtml()}</button></th>`
                 + cols.map(c => buildColumnHeader(c)).join('')
                 + '<th class="col-actions" aria-hidden="true"></th>';
-    const dragEnabled = getRecordMoveContext().enabled;
+    const moveContext = getRecordMoveContext();
+    const dragEnabled = moveContext.enabled;
     const tbody = records.map(rec => {
       const idStr = String(rec.id);
       const sel   = selectedIds.has(idStr);
@@ -933,10 +943,13 @@
         rowAnimation ? rowAnimation.className : '',
       ].filter(Boolean).join(' ');
       const gripLabel = dragEnabled ? T.rowGrip : T.rowSelect;
+      const gripTitle = dragEnabled
+        ? T.rowGrip
+        : `${T.rowSelect}. ${moveContext.reason}`;
       return `<tr data-record-id="${esc(idStr)}"${classes ? ` class="${classes}"` : ''}>`
       + `<td class="row-grip-cell"><button type="button" class="row-grip"`
       + ` data-id="${esc(idStr)}" data-drag-enabled="${String(dragEnabled)}"`
-      + ` aria-pressed="${String(sel)}" title="${esc(gripLabel)}"`
+      + ` draggable="false" aria-pressed="${String(sel)}" title="${esc(gripTitle)}"`
       + ` aria-label="${esc(gripLabel)} ${esc(idStr)}">${gripIconHtml()}</button></td>`
       + `${cols.map(c => renderTableCell(rec, c)).join('')}`
       + `<td class="row-actions">${rowActionsHtml(rec)}</td></tr>`;

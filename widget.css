@@ -480,19 +480,27 @@
     /* Selection and drag column (first column of every table) */
     .rec-table .col-grip,
     .rec-table td.row-grip-cell {
-      width: 1%; padding: 2px 6px; text-align: center;
+      width: 46px; min-width: 46px; padding: 2px 6px; text-align: center;
     }
     .row-grip,
     .group-select-grip {
       display: inline-grid; place-items: center;
-      width: 25px; height: 24px; padding: 0;
+      width: 30px; height: 28px; padding: 0;
       border: 0; border-radius: 6px;
       background: transparent; color: var(--muted);
-      cursor: pointer; outline: none;
-      transition: color .1s, background .1s, box-shadow .1s, opacity .1s;
+      cursor: pointer; outline: none; user-select: none;
+      -webkit-user-select: none; -webkit-user-drag: none;
+      touch-action: none;
+      transition: color .1s, background .1s, box-shadow .1s, opacity .1s,
+        transform .08s;
     }
     .row-grip[data-drag-enabled="true"] {
-      cursor: grab; touch-action: none;
+      cursor: grab;
+    }
+    .row-grip.drag-armed {
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+      cursor: grabbing; transform: scale(1.06);
     }
     .row-grip[data-drag-enabled="true"]:active,
     .row-grip.dragging { cursor: grabbing; }
