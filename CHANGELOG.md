@@ -2,6 +2,18 @@
 
 All notable changes to the grist-sprints grouped-view widget.
 
+## v6.5 — 2026-07-31
+
+- Make a plain row-grip click select only that record, clearing the previous
+  selection so selection no longer feels unexpectedly sticky.
+- Add Ctrl/Cmd-click toggling and Shift-click contiguous range selection;
+  Ctrl/Cmd+Shift-click adds a range to the current selection.
+- Make dragging an unselected row adopt the same selection model: it becomes
+  the sole selection unless Ctrl/Cmd is held, while dragging an already
+  selected row still moves the complete selected set.
+- Apply the same non-sticky behavior to group select-all grips and bump static
+  asset cache keys.
+
 ## v6.4 — 2026-07-31
 
 - Replace row and group select-all checkboxes with compact six-dot grip

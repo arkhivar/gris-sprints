@@ -6,6 +6,7 @@
   const btnSelDup    = document.getElementById('btn-sel-dup');
   const btnSelDel    = document.getElementById('btn-sel-del');
   const btnSelClear  = document.getElementById('btn-sel-clear');
+  let selectionAnchorId = null;
 
   function updateSelBar() {
     if (selectedIds.size === 0) {
@@ -41,11 +42,42 @@
     });
   }
 
-  function setRowSelected(id, selected) {
-    if (selected) selectedIds.add(id);
-    else selectedIds.delete(id);
+  function finishSelectionChange() {
     refreshSelectionControls();
     updateSelBar();
+  }
+
+  function recordIdsInVisualOrder() {
+    return [...content.querySelectorAll('.row-grip[data-id]')]
+      .filter(grip => grip.offsetParent !== null)
+      .map(grip => grip.dataset.id);
+  }
+
+  function selectRecordFromClick(id, event) {
+    const additive = event.ctrlKey || event.metaKey;
+    if (event.shiftKey) {
+      const orderedIds = recordIdsInVisualOrder();
+      let anchorIndex = orderedIds.indexOf(selectionAnchorId);
+      const targetIndex = orderedIds.indexOf(id);
+      if (targetIndex < 0) return;
+      if (anchorIndex < 0) {
+        selectionAnchorId = id;
+        anchorIndex = targetIndex;
+      }
+      if (!additive) selectedIds.clear();
+      const start = Math.min(anchorIndex, targetIndex);
+      const end = Math.max(anchorIndex, targetIndex);
+      orderedIds.slice(start, end + 1).forEach(recordId => selectedIds.add(recordId));
+    } else if (additive) {
+      if (selectedIds.has(id)) selectedIds.delete(id);
+      else selectedIds.add(id);
+      selectionAnchorId = id;
+    } else {
+      selectedIds.clear();
+      selectedIds.add(id);
+      selectionAnchorId = id;
+    }
+    finishSelectionChange();
   }
 
   const suppressedGripClicks = new Set();
@@ -60,7 +92,7 @@
         suppressedGripClicks.delete(id);
         return;
       }
-      setRowSelected(id, !selectedIds.has(id));
+      selectRecordFromClick(id, e);
       return;
     }
 
@@ -71,13 +103,23 @@
     const table = groupGrip.closest('table');
     if (!table) return;
     const rowGrips = [...table.querySelectorAll('tbody .row-grip[data-id]')];
-    const selectAll = !rowGrips.every(grip => selectedIds.has(grip.dataset.id));
-    rowGrips.forEach(grip => {
-      if (selectAll) selectedIds.add(grip.dataset.id);
-      else selectedIds.delete(grip.dataset.id);
-    });
-    refreshSelectionControls();
-    updateSelBar();
+    const groupIds = rowGrips.map(grip => grip.dataset.id);
+    const allSelected = groupIds.every(id => selectedIds.has(id));
+    const additive = e.ctrlKey || e.metaKey;
+    if (additive) {
+      groupIds.forEach(id => {
+        if (allSelected) selectedIds.delete(id);
+        else selectedIds.add(id);
+      });
+    } else {
+      const exactlyThisGroup = allSelected && selectedIds.size === groupIds.length;
+      selectedIds.clear();
+      if (!exactlyThisGroup) groupIds.forEach(id => selectedIds.add(id));
+    }
+    selectionAnchorId = groupIds.find(id => selectedIds.has(id))
+      || [...selectedIds][0]
+      || null;
+    finishSelectionChange();
   });
 
   function setSelBarDisabled(disabled) {
@@ -91,8 +133,14 @@
   let pendingRowPointer = null;
   let activeRowDrag = null;
 
-  function draggedRecordIds(id) {
-    const ids = selectedIds.has(id) ? [...selectedIds] : [id];
+  function draggedRecordIds(id, additive) {
+    if (!selectedIds.has(id)) {
+      if (!additive) selectedIds.clear();
+      selectedIds.add(id);
+      selectionAnchorId = id;
+      finishSelectionChange();
+    }
+    const ids = [...selectedIds];
     const present = new Set(allRecords.map(record => String(record.id)));
     return ids.filter(candidate => present.has(candidate));
   }
@@ -136,7 +184,7 @@
   function beginRowDrag(pointer, event) {
     const context = getRecordMoveContext();
     if (!context.enabled) return false;
-    const ids = draggedRecordIds(pointer.id);
+    const ids = draggedRecordIds(pointer.id, pointer.additive);
     if (!ids.length) return false;
 
     const preview = document.createElement('div');
@@ -208,6 +256,7 @@
       handle,
       startX: e.clientX,
       startY: e.clientY,
+      additive: e.ctrlKey || e.metaKey,
     };
     if (handle.setPointerCapture) {
       try { handle.setPointerCapture(e.pointerId); } catch (_) {}
@@ -289,8 +338,8 @@
         await duplicateRecordById(idStr);
       }
       selectedIds.clear();
-      refreshSelectionControls();
-      updateSelBar();
+      selectionAnchorId = null;
+      finishSelectionChange();
     } catch (err) {
       showToast(actionErrorMessage('Duplicate selection', err));
     } finally {
@@ -328,15 +377,15 @@
       showToast(actionErrorMessage('Delete selection', err));
     } finally {
       selectedIds.clear();
-      refreshSelectionControls();
-      updateSelBar();
+      selectionAnchorId = null;
+      finishSelectionChange();
       setSelBarDisabled(false);
     }
   });
 
   btnSelClear.addEventListener('click', () => {
     selectedIds.clear();
-    refreshSelectionControls();
+    selectionAnchorId = null;
     disarmSelDelete();
-    updateSelBar();
+    finishSelectionChange();
   });
