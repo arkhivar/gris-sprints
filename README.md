@@ -21,12 +21,15 @@ Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacos
 - **Automatic sums** — every Grist Numeric/Int column shows its group total
   in the always-visible group header, aligned above its table column, including
   numeric formula columns
+- **Shared adjustable columns** — every group uses the same widths; drag a
+  header edge to resize a column everywhere
+- **Column reordering** — drag headers left/right to change the order globally
 - **Row count beside every group name**
 - **Null values** collected in an *(empty)* group, sorted last
 - **Cell formatting**: booleans ✓/✗ (several display styles), plain numbers (no thousand separators — `-1425`, not `-1,425`), ISO dates, arrays
 - **Unlimited group height by default** — uncollapsed groups show all their rows and the page scrolls; an optional per-group height cap can be enabled in settings (see below)
 - **Persisted options** via `grist.setOption()` — grouping column, sort order,
-  editable columns, and height cap survive page reload
+  column widths/order, editable columns, and height cap survive page reload
 - **English-only UI** — as of v5.0 the interface is English only (the old EN/FR auto-localization was removed)
 - **⚙ Diagnostics section** — the settings panel ends with a diagnostics list showing the widget version, per-column type detection (value type, date-like yes/no) and the first raw value of each column via `JSON.stringify`, so invisible characters appear as `\uXXXX` escapes
 
@@ -115,6 +118,22 @@ repeated column name.
 Null and empty cells are skipped. Totals are recomputed on every data update
 and rendered without thousands separators (`-14250`, not `-14,250`). The old
 configurable Aggregates settings and saved rules are ignored as of v6.0.
+
+## Column layout
+
+All groups share one column layout, so a long note in one group cannot shift
+the columns in that group away from the others.
+
+- Drag the right edge of any column header to resize that column in every
+  group. Double-click the edge to restore its automatic width.
+- Drag a column header left or right to reorder it across every group.
+- Keyboard controls are available: focus a header and use
+  **Alt+Left/Right** to reorder; focus its resize edge and use
+  **Left/Right** to resize (hold **Shift** for larger steps).
+- Wider layouts scroll horizontally. Scrolling one group synchronizes the
+  others, keeping headers and automatic sums aligned.
+- Widths and order are saved automatically. Open settings and use
+  **Reset widths & order** to restore the original layout.
 
 ## Date-aware grouping
 
