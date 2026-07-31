@@ -75,7 +75,7 @@
       boolFalse: ['✗ false', 'No',    'False', 'false', '0'],
       boolLabels: ['✓ / ✗', 'Yes / No', 'True / False', '● badge', '1 / 0'],
   };
-  const WIDGET_VERSION = '6.4';
+  const WIDGET_VERSION = '6.5';
   const LOCALE = 'en-US';
 
   // ── Dates: Grist sends Date/DateTime as epoch seconds (UTC) ──
@@ -131,7 +131,7 @@
   let editingCell = null;
   const actionDiagnostics = [];
   const armedDeletes = new Map();  // id (string) → timeoutId, two-step confirmation
-  const selectedIds = new Set();   // ids (string) of checked records
+  const selectedIds = new Set();   // ids (string) of selected records
 
   // ── 4. DOM refs ───────────────────────────────────────────
   const groupSelect   = document.getElementById('group-select');

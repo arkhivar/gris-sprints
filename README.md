@@ -17,8 +17,8 @@ Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacos
   a cell to edit long, multi-line notes and emoji content without leaving the widget
 - **DateTime editor** — click any visible, writable DateTime cell to choose its
   UTC date and time without finding the record in the source table
-- **Unified grip controls** — click a row's six-dot grip to select it, click
-  more grips to build a selection, or drag a grip to move records
+- **Unified grip controls** — click a row's six-dot grip to select it, use
+  Ctrl/Cmd or Shift for multi-selection, or drag a grip to move records
 - **Drag between groups** — move one record or a selected set between existing
   groups when grouped by a writable Text or single Choice field
 - **Multi-select bulk actions** — use the grip controls to select records, then
@@ -66,11 +66,13 @@ Every record row has a trailing actions cell with always-visible buttons
 
 ### Multi-select bulk actions
 
-Each row starts with a six-dot grip. Click it to select or deselect that row;
-click additional grips to build a selection without holding a modifier key.
-The group table header has a matching select-all grip. As soon as at least one
-record is selected, an action bar appears at the bottom of the widget showing
-the selection count and three buttons:
+Each row starts with a six-dot grip. A plain click selects that row and clears
+the previous selection. Use **Ctrl-click** (or **Cmd-click** on macOS) to toggle
+individual rows, and **Shift-click** to select a contiguous range from the last
+selection anchor. **Ctrl/Cmd+Shift-click** adds a range to the current
+selection. The group table header has a matching select-all grip. As soon as at
+least one record is selected, an action bar appears at the bottom of the widget
+showing the selection count and three buttons:
 
 - **Duplicate selected** — clones every selected record (sequentially).
 - **Delete selected** — same two-step arm/confirm pattern as per-row delete,
@@ -85,7 +87,8 @@ when records disappear (e.g. after a delete or a filter change).
 Press and move a row grip beyond a small threshold to start dragging. A drag
 does not toggle selection accidentally:
 
-- Drag an unselected row to move only that record.
+- Drag an unselected row to select and move only that record. Hold Ctrl/Cmd
+  while starting the drag to add it to the existing selection.
 - Drag a selected row to move the complete current selection.
 - Valid destination groups receive an accent outline; collapsed groups work as
   destinations too. Hover near the top or bottom edge to scroll.

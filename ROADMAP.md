@@ -26,10 +26,10 @@ are proposals, not promises about a particular release.
 The row checkboxes are replaced by one grip-shaped row control in the existing
 selection column, so no additional table width is required.
 
-- Click the grip to select the row; click it again to deselect it.
-- Clicking additional grips builds a multi-row selection without requiring a
-  keyboard modifier. The existing selected-count action bar and Clear action
-  remain available.
+- A plain grip click selects one row and clears the previous selection.
+  Ctrl/Cmd-click toggles individual rows, while Shift-click selects a
+  contiguous range from the last anchor. The existing selected-count action
+  bar and Clear action remain available.
 - Pressing and moving the grip beyond a small pointer-distance threshold starts
   a drag instead of toggling selection. Suppress the click after a completed or
   cancelled drag so dropping never changes selection accidentally.
