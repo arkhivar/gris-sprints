@@ -2,6 +2,18 @@
 
 All notable changes to the grist-sprints grouped-view widget.
 
+## v6.0 — 2026-07-31
+
+- Replace configurable aggregate rules with automatic Sum totals for every
+  visible Grist Numeric/Int column, including numeric formula columns.
+- Show each total directly in its corresponding table-column header with only
+  the number—no `Σ`, function name, or repeated column name.
+- Remove the Aggregates settings UI, Count/Average/Min/Max implementations,
+  aggregate chips, and saved-rule handling.
+- Extend metadata diagnostics with declared Grist column types and the columns
+  receiving automatic sums.
+- Bumped static asset cache keys so the automatic totals load.
+
 ## v5.9 — 2026-07-30
 
 - Remove the remaining colored dot from every group header.

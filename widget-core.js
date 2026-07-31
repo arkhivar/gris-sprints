@@ -48,17 +48,6 @@
       ariaContent:     'Record groups',
       ariaGroupRegion: 'Records — ',
       cellEmpty:       'empty value',
-      sectionAggregates: 'Aggregates',
-      aggAdd:          '+ Add',
-      aggFnCount:      'Value count',
-      aggFnSum:        'Sum',
-      aggFnAvg:        'Average',
-      aggFnMin:        'Minimum',
-      aggFnMax:        'Maximum',
-      aggFnLabel:      'Aggregate function',
-      aggColLabel:     'Aggregate column',
-      aggRemove:       'Remove aggregate',
-      aggNoRules:      'No aggregate configured.',
       byDay:           'by day',
       byMonth:         'by month',
       byYear:          'by year',
@@ -77,7 +66,7 @@
       boolFalse: ['✗ false', 'No',    'False', 'false', '0'],
       boolLabels: ['✓ / ✗', 'Yes / No', 'True / False', '● badge', '1 / 0'],
   };
-  const WIDGET_VERSION = '5.9';
+  const WIDGET_VERSION = '6.0';
   const LOCALE = 'en-US';
 
   // ── Dates: Grist sends Date/DateTime as epoch seconds (UTC) ──
@@ -108,15 +97,6 @@
   }
   const BOOL_FORMATS = makeBoolFormats();
 
-  // Aggregate functions: header symbol + numeric-only restriction
-  const AGG_FNS = {
-    count: { symbol: '#', label: T.aggFnCount, numericOnly: false },
-    sum:   { symbol: 'Σ', label: T.aggFnSum,   numericOnly: true },
-    avg:   { symbol: 'x̄', label: T.aggFnAvg,   numericOnly: true },
-    min:   { symbol: '↓', label: T.aggFnMin,   numericOnly: true },
-    max:   { symbol: '↑', label: T.aggFnMax,   numericOnly: true },
-  };
-
   // ── 3. State ───────────────────────────────────────────────
   let allRecords = [];
   let allColumns = [];
@@ -124,7 +104,6 @@
   let groupBy    = '';
   let sortMode   = 'alpha-asc';
   let collapsed  = new Set();
-  let aggregates = [];
   let boolFmtKey = 'check';
   let maxGroupH  = 200;
   let limitMaxH  = false;          // false = unlimited height (default)
@@ -134,6 +113,7 @@
   let selectedTableId = 'unknown';
   let writableColumnIds = [];
   let writableColumnTypes = {};
+  let columnTypes = {};
   let editableColumns = new Set();
   let editableColumnsConfigured = false;
   let editableDefaultsApplied = false;
@@ -151,10 +131,6 @@
   const settingsPanel = document.getElementById('settings-panel');
   const btnSettings   = document.getElementById('btn-settings');
   const boolRow       = document.getElementById('bool-row');
-  const aggList       = document.getElementById('agg-list');
-  const aggFnSelect   = document.getElementById('agg-fn-select');
-  const aggColSelect  = document.getElementById('agg-col-select');
-  const btnAddAgg     = document.getElementById('btn-add-agg');
   const editableColList = document.getElementById('editable-col-list');
   const cellEditor      = document.getElementById('cell-editor');
   const cellEditorDialog = document.getElementById('cell-editor-dialog');
@@ -188,10 +164,6 @@
     document.getElementById('lbl-bool').textContent              = T.sectionBool;
     document.getElementById('lbl-editable').textContent          = T.sectionEditable;
     document.getElementById('editable-hint').textContent         = T.editableHint;
-    document.getElementById('lbl-aggregates').textContent        = T.sectionAggregates;
-    document.getElementById('btn-add-agg').textContent           = T.aggAdd;
-    document.getElementById('agg-fn-select').setAttribute('aria-label', T.aggFnLabel);
-    document.getElementById('agg-col-select').setAttribute('aria-label', T.aggColLabel);
     document.documentElement.lang = 'en';
     document.getElementById('btn-reset-maxh').textContent        = T.reset;
     document.getElementById('btn-reset-maxh').setAttribute('aria-label', T.resetMaxH);

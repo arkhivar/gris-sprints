@@ -1,8 +1,8 @@
 # grist-sprints — Grist grouped-view widget
 
-> Grist custom widget — collapsible grouped view, Airtable/Notion-style. Groups records by any column with fold/unfold, group sorting, row-count and aggregate chips, large Text-field editing, DateTime picking, and persisted options via `grist.setOption()`.
+> Grist custom widget — collapsible grouped view, Airtable/Notion-style. Groups records by any column with fold/unfold, group sorting, automatic numeric sums, large Text-field editing, DateTime picking, and persisted options via `grist.setOption()`.
 
-Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacoste/grist-widget-grouped-view) with added **aggregates in group headers**. Since v5.0 the interface is **English-only**.
+Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacoste/grist-widget-grouped-view). Since v5.0 the interface is **English-only**.
 
 ---
 
@@ -18,14 +18,14 @@ Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacos
 - **DateTime editor** — click any visible, writable DateTime cell to choose its
   UTC date and time without finding the record in the source table
 - **Multi-select bulk actions** — tick row checkboxes (or a group's select-all), then duplicate / delete the whole selection from the bottom action bar
-- **Aggregates in group headers** — configurable count / sum / avg / min / max chips per group (see below)
-- **Row count beside every group name**, with configured aggregate chips aligned
-  at the right edge of the header
+- **Automatic sums** — every Grist Numeric/Int column shows its group total
+  directly in the column header, including numeric formula columns
+- **Row count beside every group name**
 - **Null values** collected in an *(empty)* group, sorted last
 - **Cell formatting**: booleans ✓/✗ (several display styles), plain numbers (no thousand separators — `-1425`, not `-1,425`), ISO dates, arrays
 - **Unlimited group height by default** — uncollapsed groups show all their rows and the page scrolls; an optional per-group height cap can be enabled in settings (see below)
 - **Persisted options** via `grist.setOption()` — grouping column, sort order,
-  editable columns, height cap, and aggregate rules all survive page reload
+  editable columns, and height cap survive page reload
 - **English-only UI** — as of v5.0 the interface is English only (the old EN/FR auto-localization was removed)
 - **⚙ Diagnostics section** — the settings panel ends with a diagnostics list showing the widget version, per-column type detection (value type, date-like yes/no) and the first raw value of each column via `JSON.stringify`, so invisible characters appear as `\uXXXX` escapes
 
@@ -102,28 +102,17 @@ Both the checkbox (`limitMaxH`) and the slider value (`maxGroupH`) are
 persisted. Older widgets that only have a saved `maxGroupH` migrate to the
 unlimited default (checkbox unticked).
 
-## Aggregates in group headers
+## Automatic numeric sums
 
-Each group header can show aggregate chips computed from that group's records,
-next to the record count (e.g. `Σ Price 12480`). Numbers are rendered without
-thousand separators (`-1425`, not `-1,425`); averages are rounded to ≤ 2
-decimals.
+Every visible Grist **Numeric** or **Int** column automatically shows the sum
+of that group's rows directly beneath the column name. Formula columns are
+included when their declared Grist result type is numeric. The compact total
+contains only the number—there is no `Σ`, function name, or repeated column
+name.
 
-1. Open the widget settings panel (⚙ button in the toolbar).
-2. In the **Aggregates** section, pick a **function** and a **column**, then click **+ Add**. Repeat for as many rules as you need; remove a rule with its ✕ button.
-
-Available functions:
-
-| Function | Symbol | Eligible columns |
-|---|---|---|
-| Count (non-empty values) | `#` | any column |
-| Sum | `Σ` | Numeric / Int only |
-| Average | `x̄` | Numeric / Int only |
-| Min | `↓` | Numeric / Int only |
-| Max | `↑` | Numeric / Int only |
-
-- Null / empty values are skipped; averages are rounded to at most 2 decimals; numbers are rendered plain, without thousand separators.
-- Rules are persisted via `grist.setOption('aggregates', …)`, restored on reload, and recomputed on every data update.
+Null and empty cells are skipped. Totals are recomputed on every data update
+and rendered without thousands separators (`-14250`, not `-14,250`). The old
+configurable Aggregates settings and saved rules are ignored as of v6.0.
 
 ## Date-aware grouping
 
@@ -219,7 +208,7 @@ the same repo, so no extra hosting steps are needed:
 | `widget_groupes.html` | Redirect stub for the old URL (points to `groups.html`) |
 | `widget.css` | All styles |
 | `widget-core.js` | English UI strings, constants, state, date helpers |
-| `widget-app.js` | Settings panel, aggregates, diagnostics, Grist wiring, grouping, rendering, row actions |
+| `widget-app.js` | Settings panel, automatic sums, diagnostics, Grist wiring, grouping, rendering, row actions |
 | `widget-actions.js` | Multi-select state, selection action bar, bulk duplicate/delete |
 
 ## Credits

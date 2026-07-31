@@ -6,7 +6,6 @@
     if (isOpen) {
       refreshBoolSection();
       refreshEditableColumnsSection();
-      refreshAggSection();
       refreshDiag();
     }
   });
@@ -192,111 +191,49 @@
     syncMaxHUI();
   }
 
-  // ── 10b. Aggregates ─────────────────────────────────────────
-  // A column is eligible for numeric functions if all its non-empty
-  // values are numbers (Grist Numeric/Int types).
+  // ── 10b. Automatic sums ──────────────────────────────────────
+  function isNumericColumnType(type) {
+    const base = columnBaseType(type);
+    return base === 'Numeric' || base === 'Int';
+  }
+
+  // Metadata is authoritative once loaded. The value-based fallback keeps
+  // sums visible during the brief initial render before metadata arrives.
   function isNumericColumn(col) {
+    if (columnTypes[col])
+      return isNumericColumnType(columnTypes[col]);
     let hasNum = false;
     for (const r of allRecords) {
       const v = r[col];
       if (v == null || v === '') continue;
-      if (typeof v !== 'number') return false;
+      if (typeof v !== 'number' || !Number.isFinite(v)) return false;
       hasNum = true;
     }
     return hasNum;
   }
 
-  function computeAggregate(records, rule) {
-    const vals = records
-      .map(r => r[rule.column])
-      .filter(v => v != null && v !== '');
-    if (rule.fn === 'count') return vals.length;
-    const nums = vals.filter(v => typeof v === 'number' && !isNaN(v));
-    if (nums.length === 0) return null;
-    switch (rule.fn) {
-      case 'sum': return nums.reduce((a, b) => a + b, 0);
-      case 'avg': return nums.reduce((a, b) => a + b, 0) / nums.length;
-      case 'min': return Math.min(...nums);
-      case 'max': return Math.max(...nums);
+  function sumColumn(records, col) {
+    let sum = 0;
+    let hasNumber = false;
+    for (const rec of records) {
+      const value = rec[col];
+      if (typeof value !== 'number' || !Number.isFinite(value)) continue;
+      sum += value;
+      hasNumber = true;
     }
-    return null;
+    if (!hasNumber) return null;
+    return Object.is(sum, -0) ? 0 : sum;
   }
 
-  function formatAggValue(v, fn) {
-    if (fn === 'avg') v = Math.round(v * 100) / 100;   // ≤ 2 decimals
-    return String(v);   // no thousand separators (-1425, never -1,425)
-  }
-
-  // Configured aggregate chips stay at the right edge of the group header.
-  function buildAggChips(records) {
-    if (!aggregates.length) return '';
-    const chips = aggregates
-      .filter(rule => AGG_FNS[rule.fn] && allColumns.includes(rule.column))
-      .map(rule => {
-        const v   = computeAggregate(records, rule);
-        const txt = v == null ? '—' : formatAggValue(v, rule.fn);
-        const meta = AGG_FNS[rule.fn];
-        return `<span class="agg-chip" title="${esc(meta.label)} — ${esc(rule.column)}"`
-             + `>${meta.symbol} ${esc(rule.column)} ${txt}</span>`;
-      });
-    return chips.length ? `<span class="agg-chips">${chips.join('')}</span>` : '';
-  }
-
-  function saveAggregates() {
-    grist.setOption('aggregates', JSON.stringify(aggregates));
-  }
-
-  // Columns offered depend on the chosen function (numeric only
-  // for sum/avg/min/max, all columns for count)
-  function rebuildAggColSelect() {
-    const fn = aggFnSelect.value || 'count';
-    const numericOnly = AGG_FNS[fn] ? AGG_FNS[fn].numericOnly : false;
-    aggColSelect.innerHTML = '';
-    allColumns
-      .filter(col => !numericOnly || isNumericColumn(col))
-      .forEach(col => {
-        const opt = document.createElement('option');
-        opt.value = col; opt.textContent = col;
-        aggColSelect.appendChild(opt);
-      });
-  }
-
-  function refreshAggSection() {
-    // Existing rules list
-    aggList.innerHTML = '';
-    if (aggregates.length === 0) {
-      const note = document.createElement('p');
-      note.className = 'agg-empty-note';
-      note.textContent = T.aggNoRules;
-      aggList.appendChild(note);
-    }
-    aggregates.forEach((rule, i) => {
-      const meta = AGG_FNS[rule.fn];
-      const row  = document.createElement('div');
-      row.className = 'agg-row';
-
-      const lbl = document.createElement('span');
-      lbl.className = 'agg-row-label';
-      lbl.innerHTML = `<span class="agg-fn-sym" aria-hidden="true">${meta.symbol}</span>`
-                    + `${esc(rule.column)} · ${esc(meta.label)}`;
-
-      const del = document.createElement('button');
-      del.type = 'button';
-      del.className = 'btn-reset-color';
-      del.textContent = '✕';
-      del.setAttribute('aria-label', T.aggRemove + ' ' + rule.column);
-      del.addEventListener('click', () => {
-        aggregates.splice(i, 1);
-        saveAggregates();
-        refreshAggSection();
-        render();
-      });
-
-      row.appendChild(lbl);
-      row.appendChild(del);
-      aggList.appendChild(row);
-    });
-    rebuildAggColSelect();
+  function buildColumnHeader(col, records) {
+    const name = `<span class="column-name">${esc(col)}</span>`;
+    if (!isNumericColumn(col))
+      return `<th scope="col" title="${esc(col)}">${name}</th>`;
+    const sum = sumColumn(records, col);
+    const text = sum == null ? '—' : String(sum);
+    return `<th scope="col" class="column-numeric" title="${esc(col)}">`
+      + `${name}<span class="column-sum" title="Sum of ${esc(col)}"`
+      + ` aria-label="Sum of ${esc(col)}: ${esc(text)}">${esc(text)}</span></th>`;
   }
 
   // Diagnostics: per-column type detection + first raw value shown with
@@ -333,6 +270,13 @@
       ? `editable DateTime: ${dateTimeColumns.join(', ')}`
       : 'editable DateTime: none';
     list.appendChild(editableDateTime);
+    const summed = document.createElement('div');
+    summed.className = 'diag-row';
+    const summedColumns = allColumns.filter(isNumericColumn);
+    summed.textContent = summedColumns.length
+      ? `automatic sums: ${summedColumns.join(', ')}`
+      : 'automatic sums: none';
+    list.appendChild(summed);
     allColumns.forEach(col => {
       const first = allRecords.map(r => r[col]).find(v => v != null && v !== '');
       const row = document.createElement('div');
@@ -340,7 +284,9 @@
       const raw = first === undefined ? '(empty)' : JSON.stringify(first)
         .replace(/[\u00AD\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u206F\uFEFF]/g,
           c => '\\u' + c.codePointAt(0).toString(16).padStart(4, '0'));
-      row.textContent = `${col} · ${typeof first} · date-like: ${isDateLikeColumn(col) ? 'yes' : 'no'} · first: ${raw.length > 80 ? raw.slice(0, 80) + '…' : raw}`;
+      row.textContent = `${col} · ${columnTypes[col] || 'unknown'} · ${typeof first}`
+        + ` · date-like: ${isDateLikeColumn(col) ? 'yes' : 'no'}`
+        + ` · first: ${raw.length > 80 ? raw.slice(0, 80) + '…' : raw}`;
       list.appendChild(row);
     });
     if (actionDiagnostics.length) {
@@ -356,32 +302,6 @@
         list.appendChild(row);
       });
     }
-  }
-
-  function initAggSection() {
-    // Function dropdown (labels from T)
-    Object.keys(AGG_FNS).forEach(fn => {
-      const opt = document.createElement('option');
-      opt.value = fn;
-      opt.textContent = AGG_FNS[fn].symbol + ' ' + AGG_FNS[fn].label;
-      aggFnSelect.appendChild(opt);
-    });
-    aggFnSelect.addEventListener('change', rebuildAggColSelect);
-    btnAddAgg.addEventListener('click', () => {
-      const col = aggColSelect.value;
-      const fn  = aggFnSelect.value;
-      if (!col || !AGG_FNS[fn]) return;
-      if (AGG_FNS[fn].numericOnly && !isNumericColumn(col)) return;
-      aggregates.push({ column: col, fn: fn });
-      saveAggregates();
-      refreshAggSection();
-      render();
-    });
-    rebuildAggColSelect();
-  }
-
-  function isValidAggRule(r) {
-    return r && typeof r.column === 'string' && typeof r.fn === 'string' && !!AGG_FNS[r.fn];
   }
 
   // ── 11. Grist ────────────────────────────────────────────
@@ -403,12 +323,6 @@
       if (opts.limitMaxH !== undefined)
         limitMaxH = opts.limitMaxH === true || opts.limitMaxH === 'true' || opts.limitMaxH === 1;
       syncMaxHUI();
-      if (opts.aggregates) {
-        try {
-          const arr = JSON.parse(opts.aggregates);
-          if (Array.isArray(arr)) aggregates = arr.filter(isValidAggRule);
-        } catch(e) { aggregates = []; }
-      }
       if (Object.prototype.hasOwnProperty.call(opts, 'editableColumns')) {
         editableColumnsConfigured = true;
         try {
@@ -433,7 +347,6 @@
         err && err.message ? err.message : String(err)));
     buildBoolButtons();
     refreshEditableColumnsSection();
-    refreshAggSection();
     refreshDiag();
     render();
   });
@@ -460,14 +373,12 @@
     // even when the current filter returns no records.
     rebuildColumnSelect();
     if (settingsPanel.classList.contains('open')) refreshEditableColumnsSection();
-    if (settingsPanel.classList.contains('open')) refreshAggSection();
     if (settingsPanel.classList.contains('open')) refreshDiag();
     render();
   });
 
   buildBoolButtons();
   initMaxHSlider();
-  initAggSection();
 
   // ── 12. Column selector ──────────────────────────────
   function rebuildColumnSelect() {
@@ -624,8 +535,7 @@
         <span class="group-badge"
               aria-label="${group.records.length}\u00a0${group.records.length > 1 ? T.records : T.record}"
         >${group.records.length}</span>
-        <span class="${labelCls}">${labelTxt}</span>
-        ${buildAggChips(group.records)}`;
+        <span class="${labelCls}">${labelTxt}</span>`;
 
       header.addEventListener('click', () => {
         if (collapsed.has(group.key)) {
@@ -663,9 +573,8 @@
     // Multi-select column first, actions column last
     const thead = '<th class="col-sel"><input type="checkbox" class="sel-cb sel-cb-all"'
                 + ` aria-label="${esc(T.selAll)}"></th>`
-                + cols.map(c =>
-      `<th scope="col" title="${esc(c)}">${esc(c)}</th>`
-    ).join('') + '<th class="col-actions" aria-hidden="true"></th>';
+                + cols.map(c => buildColumnHeader(c, records)).join('')
+                + '<th class="col-actions" aria-hidden="true"></th>';
     const tbody = records.map(rec => {
       const idStr = String(rec.id);
       const sel   = selectedIds.has(idStr);
@@ -921,19 +830,25 @@
       const columns = await grist.docApi.fetchTable('_grist_Tables_column');
       const result = new Set();
       const typeMap = {};
+      const allTypeMap = {};
       for (let i = 0; i < (columns.id || []).length; i++) {
         const colId = columns.colId[i];
-        if (columns.parentId[i] !== tableRef || columns.isFormula[i]) continue;
+        if (columns.parentId[i] !== tableRef) continue;
         if (!colId || colId === 'manualSort' || colId.startsWith('gristHelper_')) continue;
+        const type = columns.type && columns.type[i] ? columns.type[i] : '';
+        allTypeMap[colId] = type;
+        if (columns.isFormula[i]) continue;
         result.add(colId);
-        typeMap[colId] = columns.type && columns.type[i] ? columns.type[i] : '';
+        typeMap[colId] = type;
       }
       writableColumnIds = [...result];
       writableColumnTypes = typeMap;
+      columnTypes = allTypeMap;
       recordActionDiagnostic('Metadata', 'ok',
         `table=${tableId} · writable=${writableColumnIds.join(', ')}`
         + ` · text=${writableColumnIds.filter(col => isTextColumnType(typeMap[col])).join(', ')}`
-        + ` · datetime=${writableColumnIds.filter(col => isDateTimeColumnType(typeMap[col])).join(', ')}`);
+        + ` · datetime=${writableColumnIds.filter(col => isDateTimeColumnType(typeMap[col])).join(', ')}`
+        + ` · numeric=${Object.keys(allTypeMap).filter(col => isNumericColumnType(allTypeMap[col])).join(', ')}`);
       return result;
     })();
     try {
