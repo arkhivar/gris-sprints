@@ -202,6 +202,20 @@
     .group.group-sort-moving {
       position: relative; z-index: 2; will-change: transform;
     }
+    .group.group-drop-valid {
+      outline: 1px dashed color-mix(in srgb, var(--accent) 72%, transparent);
+      outline-offset: 2px;
+    }
+    .group.group-drop-invalid { opacity: .48; }
+    .group.group-drop-target {
+      outline: 3px solid var(--accent);
+      outline-offset: 2px;
+      box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 22%, transparent);
+    }
+    .group.group-drop-saving {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
     .group-header {
       display: flex; align-items: center; gap: 7px; padding: 6px 10px;
       width: 100%; text-align: left; background: none; border: none; cursor: pointer;
@@ -340,11 +354,25 @@
       0%, 28% { background-color: color-mix(in srgb, var(--accent) 16%, var(--surface)); }
       100%    { background-color: transparent; }
     }
+    @keyframes moved-row-enter {
+      from { opacity: .45; transform: translateX(-10px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes moved-row-highlight {
+      0%, 32% { background-color: color-mix(in srgb, var(--accent) 18%, var(--surface)); }
+      100%    { background-color: transparent; }
+    }
     .rec-table tbody tr.row-enter {
       animation: duplicate-row-enter .22s cubic-bezier(.2,.8,.2,1) both;
     }
     .rec-table tbody tr.row-enter td {
       animation: duplicate-row-highlight .85s ease-out;
+    }
+    .rec-table tbody tr.row-moved {
+      animation: moved-row-enter .24s cubic-bezier(.2,.8,.2,1) both;
+    }
+    .rec-table tbody tr.row-moved td {
+      animation: moved-row-highlight .8s ease-out;
     }
     .rec-table tbody td {
       padding: 5px 10px; border-bottom: 1px solid var(--border); color: var(--text);
@@ -413,8 +441,13 @@
       font-size: 12px; font-weight: 500; box-shadow: var(--shadow);
     }
     .toast.visible { display: block; }
+    .toast.success {
+      background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+      border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
+      color: color-mix(in srgb, var(--accent) 78%, var(--text));
+    }
 
-    /* ── Multi-select: action bar + checkboxes ── */
+    /* ── Multi-select: action bar + unified grip controls ── */
     #sel-bar {
       display: none;
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
@@ -444,10 +477,58 @@
     .sel-btn.sel-del:hover { color: #dc2626; border-color: #dc2626; }
     .sel-btn.sel-del.armed { background: #dc2626; border-color: #dc2626; color: #fff; }
 
-    /* Selection column (first column of the tables) */
-    .rec-table .col-sel    { width: 1%; padding: 4px 6px; }
-    .rec-table td.row-sel  { padding: 3px 6px; text-align: center; }
-    .sel-cb { cursor: pointer; accent-color: var(--accent); }
+    /* Selection and drag column (first column of every table) */
+    .rec-table .col-grip,
+    .rec-table td.row-grip-cell {
+      width: 1%; padding: 2px 6px; text-align: center;
+    }
+    .row-grip,
+    .group-select-grip {
+      display: inline-grid; place-items: center;
+      width: 25px; height: 24px; padding: 0;
+      border: 0; border-radius: 6px;
+      background: transparent; color: var(--muted);
+      cursor: pointer; outline: none;
+      transition: color .1s, background .1s, box-shadow .1s, opacity .1s;
+    }
+    .row-grip[data-drag-enabled="true"] {
+      cursor: grab; touch-action: none;
+    }
+    .row-grip[data-drag-enabled="true"]:active,
+    .row-grip.dragging { cursor: grabbing; }
+    .row-grip:hover,
+    .group-select-grip:hover {
+      color: var(--text); background: var(--bg);
+    }
+    .row-grip:focus-visible,
+    .group-select-grip:focus-visible { box-shadow: var(--focus-ring); }
+    .row-grip[aria-pressed="true"],
+    .group-select-grip[aria-pressed="true"] {
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+    }
+    .group-select-grip[data-selection-state="some"] {
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 7%, transparent);
+      box-shadow: inset 0 -2px 0 var(--accent);
+    }
+    .grip-icon {
+      display: block; width: 12px; height: 16px; fill: currentColor;
+    }
+    body.row-drag-active {
+      cursor: grabbing; user-select: none;
+    }
+    .rec-table tbody tr.row-drag-source td { opacity: .35; }
+    .row-drag-preview {
+      position: fixed; top: 0; left: 0; z-index: 100;
+      pointer-events: none;
+      min-width: 104px; padding: 7px 10px;
+      border: 1px solid color-mix(in srgb, var(--accent) 48%, var(--border));
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+      color: var(--text); box-shadow: 0 8px 24px rgba(0,0,0,.16);
+      font-size: 12px; font-weight: 600;
+    }
 
     /* Highlight of checked rows */
     .rec-table tbody tr.row-selected td {
@@ -463,7 +544,9 @@
     @media (prefers-reduced-motion: reduce) {
       .group.group-sort-moving,
       .rec-table tbody tr.row-enter,
-      .rec-table tbody tr.row-enter td {
+      .rec-table tbody tr.row-enter td,
+      .rec-table tbody tr.row-moved,
+      .rec-table tbody tr.row-moved td {
         animation: none !important;
         transition: none !important;
       }

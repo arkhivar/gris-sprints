@@ -23,6 +23,17 @@
     return columnBaseType(type) === 'DateTime';
   }
 
+  function getRecordMoveContext() {
+    const { col, granularity } = parseGroupBy(groupBy);
+    const type = columnBaseType(writableColumnTypes[col] || columnTypes[col]);
+    const enabled = !!col
+      && !granularity
+      && writableColumnIds.includes(col)
+      && (type === 'Text' || type === 'Choice')
+      && !isDateLikeColumn(col);
+    return { enabled, col, type, granularity };
+  }
+
   function editableTextCandidates() {
     const groupCol = parseGroupBy(groupBy).col;
     return allColumns.filter(col =>
@@ -240,7 +251,7 @@
   let sharedTableScrollLeft = 0;
   let syncingTableScroll = false;
   let draggedColumn = null;
-  const pendingDuplicateAnimations = new Map();
+  const pendingRowAnimations = new Map();
 
   function clampColumnWidth(width) {
     return Math.max(MIN_COLUMN_WIDTH, Math.min(MAX_COLUMN_WIDTH, Math.round(width)));
@@ -444,45 +455,55 @@
       .find(row => row.dataset.recordId === key) || null;
   }
 
-  function startPendingDuplicateAnimations() {
+  function startPendingRowAnimations() {
     const now = Date.now();
-    pendingDuplicateAnimations.forEach((entry, id) => {
+    pendingRowAnimations.forEach((entry, id) => {
       if (entry.expires <= now) {
         clearTimeout(entry.timer);
-        pendingDuplicateAnimations.delete(id);
+        pendingRowAnimations.delete(id);
         return;
       }
       const row = rowForRecordId(id);
       if (!row) return;
       if (prefersReducedMotion()) {
         clearTimeout(entry.timer);
-        pendingDuplicateAnimations.delete(id);
-        row.classList.remove('row-enter');
+        pendingRowAnimations.delete(id);
+        row.classList.remove(entry.className);
         return;
       }
       if (entry.row === row) return;
       clearTimeout(entry.timer);
       entry.row = row;
-      row.classList.add('row-enter');
+      row.classList.add(entry.className);
       entry.timer = setTimeout(() => {
-        if (pendingDuplicateAnimations.get(id) === entry)
-          pendingDuplicateAnimations.delete(id);
-        if (row.isConnected) row.classList.remove('row-enter');
-      }, 950);
+        if (pendingRowAnimations.get(id) === entry)
+          pendingRowAnimations.delete(id);
+        if (row.isConnected) row.classList.remove(entry.className);
+      }, entry.duration);
     });
   }
 
-  function queueDuplicateAnimation(id) {
+  function queueRowAnimation(id, className, duration) {
     if (id == null || id === 'unknown') return;
     const key = String(id);
-    const previous = pendingDuplicateAnimations.get(key);
+    const previous = pendingRowAnimations.get(key);
     if (previous) clearTimeout(previous.timer);
-    pendingDuplicateAnimations.set(key, {
+    pendingRowAnimations.set(key, {
       expires: Date.now() + 5000,
+      className,
+      duration,
       row: null,
       timer: null,
     });
-    startPendingDuplicateAnimations();
+    startPendingRowAnimations();
+  }
+
+  function queueDuplicateAnimation(id) {
+    queueRowAnimation(id, 'row-enter', 950);
+  }
+
+  function queueMoveAnimations(ids) {
+    ids.forEach(id => queueRowAnimation(id, 'row-moved', 850));
   }
 
   // Diagnostics: per-column type detection + first raw value shown with
@@ -519,6 +540,15 @@
       ? `editable DateTime: ${dateTimeColumns.join(', ')}`
       : 'editable DateTime: none';
     list.appendChild(editableDateTime);
+    const move = document.createElement('div');
+    move.className = 'diag-row';
+    const moveContext = getRecordMoveContext();
+    move.textContent = moveContext.enabled
+      ? `drag move: enabled · ${moveContext.col} · ${moveContext.type}`
+      : `drag move: disabled · group=${groupBy || '(none)'}`
+        + ` · type=${moveContext.type || 'unknown'}`
+        + ` · writable=${moveContext.col ? writableColumnIds.includes(moveContext.col) : false}`;
+    list.appendChild(move);
     const summed = document.createElement('div');
     summed.className = 'diag-row';
     const summedColumns = allColumns.filter(isNumericColumn);
@@ -695,6 +725,7 @@
     collapsed.clear();
     grist.setOption('groupBy', groupBy);
     if (settingsPanel.classList.contains('open')) refreshEditableColumnsSection();
+    if (settingsPanel.classList.contains('open')) refreshDiag();
     render();
   });
 
@@ -731,24 +762,26 @@
     const map = new Map();
     allRecords.forEach(rec => {
       const raw = rec[col];
-      let key, label, sortKey;
+      let key, label, sortKey, writeValue;
       if (raw == null || raw === '') {
-        key = '\x00__empty__'; label = raw; sortKey = null;
+        key = '\x00__empty__'; label = raw; sortKey = null; writeValue = null;
       } else if (dateMode) {
         // raw = epoch (number) or ISO string → epoch seconds
         const sec = toEpochSec(raw);
         if (sec == null) {
-          key = '\x00__empty__'; label = raw; sortKey = null;
+          key = '\x00__empty__'; label = raw; sortKey = null; writeValue = null;
         } else {
           const ms = bucketStartMs(sec, granularity);
           key     = String(ms);               // the key carries the bucket epoch
           label   = bucketLabel(ms, granularity);
           sortKey = ms;
+          writeValue = raw;
         }
       } else {
-        key = String(raw); label = raw; sortKey = null;
+        key = String(raw); label = raw; sortKey = null; writeValue = raw;
       }
-      if (!map.has(key)) map.set(key, { key, label, sortKey, records: [] });
+      if (!map.has(key))
+        map.set(key, { key, label, sortKey, writeValue, records: [] });
       map.get(key).records.push(rec);
     });
     const groups = Array.from(map.values());
@@ -808,6 +841,8 @@
       const card = document.createElement('article');
       card.className = 'group' + (isCollapsed ? ' collapsed' : '');
       card.dataset.animationKey = bodyId;
+      card.dataset.groupKey = group.key;
+      card.dataset.groupLabel = isEmpty ? T.emptyGroup : String(group.label);
 
       const header = document.createElement('button');
       header.type = 'button';
@@ -860,27 +895,49 @@
       scroller.scrollLeft = sharedTableScrollLeft;
     });
     scheduleGroupSumAlignment();
-    startPendingDuplicateAnimations();
+    startPendingRowAnimations();
     refreshBoolSection();
   }
 
+  function gripIconHtml() {
+    return `<svg class="grip-icon" viewBox="0 0 12 16" aria-hidden="true"`
+      + ` focusable="false"><circle cx="3" cy="3" r="1.25"/>`
+      + `<circle cx="9" cy="3" r="1.25"/><circle cx="3" cy="8" r="1.25"/>`
+      + `<circle cx="9" cy="8" r="1.25"/><circle cx="3" cy="13" r="1.25"/>`
+      + `<circle cx="9" cy="13" r="1.25"/></svg>`;
+  }
+
   function buildTable(cols, records, groupLabel) {
-    // Multi-select column first, actions column last
-    const thead = '<th class="col-sel"><input type="checkbox" class="sel-cb sel-cb-all"'
-                + ` aria-label="${esc(T.selAll)}"></th>`
+    // Unified selection/drag control first, actions column last.
+    const selectedCount = records.filter(rec => selectedIds.has(String(rec.id))).length;
+    const selectionState = selectedCount === 0
+      ? 'none'
+      : (selectedCount === records.length ? 'all' : 'some');
+    const groupPressed = selectionState === 'all'
+      ? 'true'
+      : (selectionState === 'some' ? 'mixed' : 'false');
+    const thead = '<th class="col-grip">'
+                + `<button type="button" class="group-select-grip"`
+                + ` data-selection-state="${selectionState}" aria-pressed="${groupPressed}"`
+                + ` title="${esc(T.selectGroup)}" aria-label="${esc(T.selectGroup)}">`
+                + `${gripIconHtml()}</button></th>`
                 + cols.map(c => buildColumnHeader(c)).join('')
                 + '<th class="col-actions" aria-hidden="true"></th>';
+    const dragEnabled = getRecordMoveContext().enabled;
     const tbody = records.map(rec => {
       const idStr = String(rec.id);
       const sel   = selectedIds.has(idStr);
+      const rowAnimation = pendingRowAnimations.get(idStr);
       const classes = [
         sel ? 'row-selected' : '',
-        pendingDuplicateAnimations.has(idStr) ? 'row-enter' : '',
+        rowAnimation ? rowAnimation.className : '',
       ].filter(Boolean).join(' ');
+      const gripLabel = dragEnabled ? T.rowGrip : T.rowSelect;
       return `<tr data-record-id="${esc(idStr)}"${classes ? ` class="${classes}"` : ''}>`
-      + `<td class="row-sel"><input type="checkbox" class="sel-cb sel-cb-row"`
-      + ` data-id="${esc(idStr)}"${sel ? ' checked' : ''}`
-      + ` aria-label="${esc(T.selAll)}"></td>`
+      + `<td class="row-grip-cell"><button type="button" class="row-grip"`
+      + ` data-id="${esc(idStr)}" data-drag-enabled="${String(dragEnabled)}"`
+      + ` aria-pressed="${String(sel)}" title="${esc(gripLabel)}"`
+      + ` aria-label="${esc(gripLabel)} ${esc(idStr)}">${gripIconHtml()}</button></td>`
       + `${cols.map(c => renderTableCell(rec, c)).join('')}`
       + `<td class="row-actions">${rowActionsHtml(rec)}</td></tr>`;
     }).join('');
@@ -1057,15 +1114,16 @@
 
   // ── 14b. Row actions: delegation on #content ───────
   let toastTimer = null;
-  function showToast(msg) {
+  function showToast(msg, tone = 'error') {
     let toast = document.getElementById('toast');
     if (!toast) {
       toast = document.createElement('div');
       toast.id = 'toast';
       toast.className = 'toast';
-      toast.setAttribute('role', 'alert');
       content.prepend(toast);
     }
+    toast.setAttribute('role', tone === 'success' ? 'status' : 'alert');
+    toast.classList.toggle('success', tone === 'success');
     toast.textContent = msg;
     toast.classList.add('visible');
     clearTimeout(toastTimer);
@@ -1310,6 +1368,54 @@
       writableColumnIdsPromise = null;
       throw err;
     }
+  }
+
+  function movableRecordGroupKey(rec, col) {
+    const value = rec[col];
+    return value == null || value === '' ? '\x00__empty__' : String(value);
+  }
+
+  async function moveRecordsToGroup(idStrings, targetKey) {
+    await getWritableColumnIds();
+    const context = getRecordMoveContext();
+    if (!context.enabled)
+      throw new Error('Drag-and-drop requires a writable Text or Choice grouping column');
+
+    const target = getGroups().find(group => group.key === targetKey);
+    if (!target) throw new Error('The destination group is no longer available');
+
+    const recordIds = [...new Set(idStrings.map(validRecordId))];
+    const records = recordIds
+      .map(id => allRecords.find(record => Number(record.id) === id))
+      .filter(Boolean)
+      .filter(record => movableRecordGroupKey(record, context.col) !== targetKey);
+    if (!records.length)
+      return { moved: 0, label: targetKey === '\x00__empty__' ? T.emptyGroup : String(target.label) };
+
+    const targetValue = targetKey === '\x00__empty__' ? null : target.writeValue;
+    const movedIds = records.map(record => Number(record.id));
+    const label = targetKey === '\x00__empty__' ? T.emptyGroup : String(target.label);
+    const detail = `records=${movedIds.join(',')} · column=${context.col}`
+      + ` · target=${label} · type=${context.type}`;
+    recordActionDiagnostic('Move', 'start', detail);
+
+    await grist.selectedTable.update(
+      records.map(record => ({
+        id: Number(record.id),
+        fields: { [context.col]: targetValue },
+      })),
+      { parseStrings: false });
+
+    const firstPositions = captureGroupPositions();
+    movedIds.forEach(id => {
+      const current = allRecords.find(record => Number(record.id) === id);
+      if (current) current[context.col] = targetValue;
+    });
+    queueMoveAnimations(movedIds);
+    render();
+    animateSortedGroups(firstPositions);
+    recordActionDiagnostic('Move', 'ok', detail);
+    return { moved: movedIds.length, label };
   }
 
   async function duplicateRecordById(idStr) {

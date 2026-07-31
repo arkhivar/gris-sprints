@@ -2,6 +2,26 @@
 
 All notable changes to the grist-sprints grouped-view widget.
 
+## v6.4 — 2026-07-31
+
+- Replace row and group select-all checkboxes with compact six-dot grip
+  controls: click to toggle selection, or drag beyond a small movement
+  threshold to start moving records.
+- Allow records to move between existing groups only for writable, non-formula,
+  non-date `Text` and single-value `Choice` grouping columns.
+- Drag an already-selected record to move the complete selection together;
+  dragging an unselected record moves only that row.
+- Highlight valid destination groups, support collapsed targets and edge
+  auto-scrolling, suppress post-drag clicks, and let Escape cancel safely.
+- Write the destination group's raw value through one
+  `grist.selectedTable.update()` call, including clearing values through the
+  `(empty)` group, then refresh counts, sums, sorting, selection, and movement
+  feedback after Grist confirms the update.
+- Add move eligibility and complete move outcomes to Diagnostics, preserve
+  reduced-motion behavior, and document deferred date/Choice List rules in
+  `ROADMAP.md`.
+- Bumped static asset cache keys so the interaction update loads.
+
 ## v6.3 — 2026-07-31
 
 - Animate group cards into their new positions when the Sort control changes,

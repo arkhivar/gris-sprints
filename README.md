@@ -17,7 +17,12 @@ Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacos
   a cell to edit long, multi-line notes and emoji content without leaving the widget
 - **DateTime editor** — click any visible, writable DateTime cell to choose its
   UTC date and time without finding the record in the source table
-- **Multi-select bulk actions** — tick row checkboxes (or a group's select-all), then duplicate / delete the whole selection from the bottom action bar
+- **Unified grip controls** — click a row's six-dot grip to select it, click
+  more grips to build a selection, or drag a grip to move records
+- **Drag between groups** — move one record or a selected set between existing
+  groups when grouped by a writable Text or single Choice field
+- **Multi-select bulk actions** — use the grip controls to select records, then
+  duplicate / delete the whole selection from the bottom action bar
 - **Automatic sums** — every Grist Numeric/Int column shows its group total
   in the always-visible group header, aligned above its table column, including
   numeric formula columns
@@ -43,8 +48,9 @@ Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacos
    https://arkhivar.github.io/grist-sprints/groups.html
    ```
    (The old `widget_groupes.html` URL still works — it redirects to `groups.html`.)
-3. Select access level **Full access** — required for row actions and field
-   editing. With a lower level the view still works but write actions fail.
+3. Select access level **Full access** — required for row actions, field
+   editing, and cross-group moves. With a lower level the view still works but
+   write actions fail.
 4. Pick a grouping column in the widget toolbar
 
 ## Row actions (duplicate / delete)
@@ -60,10 +66,11 @@ Every record row has a trailing actions cell with always-visible buttons
 
 ### Multi-select bulk actions
 
-Each row starts with a checkbox; each group table header has a select-all
-checkbox for that group. As soon as at least one record is selected, an action
-bar appears at the bottom of the widget showing the selection count and three
-buttons:
+Each row starts with a six-dot grip. Click it to select or deselect that row;
+click additional grips to build a selection without holding a modifier key.
+The group table header has a matching select-all grip. As soon as at least one
+record is selected, an action bar appears at the bottom of the widget showing
+the selection count and three buttons:
 
 - **Duplicate selected** — clones every selected record (sequentially).
 - **Delete selected** — same two-step arm/confirm pattern as per-row delete,
@@ -73,11 +80,30 @@ buttons:
 The selection survives collapsing/expanding groups, and is pruned automatically
 when records disappear (e.g. after a delete or a filter change).
 
+### Drag records between groups
+
+Press and move a row grip beyond a small threshold to start dragging. A drag
+does not toggle selection accidentally:
+
+- Drag an unselected row to move only that record.
+- Drag a selected row to move the complete current selection.
+- Valid destination groups receive an accent outline; collapsed groups work as
+  destinations too. Hover near the top or bottom edge to scroll.
+- Drop on `(empty)` to clear the grouping value. Drop back into the current
+  group is ignored, and **Escape** cancels.
+
+Moves are deliberately enabled only when the active grouping column is a
+writable, non-formula, non-date Grist **Text** or single **Choice** column. The
+widget writes the destination group's exact underlying value—not its visible
+label—and waits for Grist to confirm the update before rendering the move.
+Choice List, Date/DateTime buckets, references, numeric fields, and formulas
+remain guarded. See [ROADMAP.md](ROADMAP.md) for the deferred rules.
+
 These are **write operations**: the widget must be configured with **Full
 access** in Grist (step 3 above). If access is insufficient, the operation is
 rejected and a transient error toast is shown at the top of the widget. After a
-successful action the widget does not patch its own state — Grist pushes fresh
-records and the view re-renders.
+successful move, the widget renders the confirmed destination immediately and
+then accepts Grist's fresh `onRecords` state.
 
 ## Editing fields
 
@@ -219,9 +245,9 @@ Details:
   aggregate rules via ⚙ → *Aggregates* → **+ Add**.
 - **Duplicate / delete fails with an error toast**: the widget's access level
   must be **Full access** (set in the widget's data-selection panel).
-- **Checkboxes render dark**: the widget declares `color-scheme: light` so
-  native controls stay light even in dark-mode browsers; update to the latest
-  `widget.css` if you host your own copy.
+- **Rows cannot be dragged**: the current grouping column must be a writable
+  Text or single Choice field and must not contain date-like values. Open
+  ⚙ → **Diagnostics** and check the `drag move:` line.
 
 ## Hosting
 
@@ -243,7 +269,8 @@ the same repo, so no extra hosting steps are needed:
 | `widget.css` | All styles |
 | `widget-core.js` | English UI strings, constants, state, date helpers |
 | `widget-app.js` | Settings panel, automatic sums, diagnostics, Grist wiring, grouping, rendering, row actions |
-| `widget-actions.js` | Multi-select state, selection action bar, bulk duplicate/delete |
+| `widget-actions.js` | Unified grip selection, cross-group dragging, action bar, and bulk actions |
+| `ROADMAP.md` | Deferred drag semantics for dates, Choice Lists, references, and other types |
 
 ## Credits
 
