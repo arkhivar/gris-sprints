@@ -199,6 +199,9 @@
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius); box-shadow: var(--shadow);
     }
+    .group.group-sort-moving {
+      position: relative; z-index: 2; will-change: transform;
+    }
     .group-header {
       display: flex; align-items: center; gap: 7px; padding: 6px 10px;
       width: 100%; text-align: left; background: none; border: none; cursor: pointer;
@@ -329,6 +332,20 @@
     }
     .rec-table tbody tr           { transition: background .08s; }
     .rec-table tbody tr:hover td  { background: var(--hover-row); }
+    @keyframes duplicate-row-enter {
+      from { opacity: 0; transform: translateY(-8px) scale(.995); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes duplicate-row-highlight {
+      0%, 28% { background-color: color-mix(in srgb, var(--accent) 16%, var(--surface)); }
+      100%    { background-color: transparent; }
+    }
+    .rec-table tbody tr.row-enter {
+      animation: duplicate-row-enter .22s cubic-bezier(.2,.8,.2,1) both;
+    }
+    .rec-table tbody tr.row-enter td {
+      animation: duplicate-row-highlight .85s ease-out;
+    }
     .rec-table tbody td {
       padding: 5px 10px; border-bottom: 1px solid var(--border); color: var(--text);
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -441,6 +458,15 @@
     .version-badge {
       font-family: var(--mono); font-size: 10px; color: var(--muted);
       margin-right: 2px; user-select: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .group.group-sort-moving,
+      .rec-table tbody tr.row-enter,
+      .rec-table tbody tr.row-enter td {
+        animation: none !important;
+        transition: none !important;
+      }
     }
 
     /* Diagnostics list in the settings panel */

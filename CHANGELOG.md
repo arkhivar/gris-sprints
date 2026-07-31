@@ -2,6 +2,18 @@
 
 All notable changes to the grist-sprints grouped-view widget.
 
+## v6.3 — 2026-07-31
+
+- Animate group cards into their new positions when the Sort control changes,
+  so their records visibly travel with the reordered groups instead of jumping.
+- Give freshly duplicated rows a short fade/slide entrance and a soft accent
+  highlight once Grist sends the created record back through `onRecords`.
+- Target duplicate animation by Grist's returned record ID, including bulk
+  duplication, so unrelated records never animate.
+- Respect the operating system's reduced-motion preference by skipping both
+  sorting and duplicate animations.
+- Bumped static asset cache keys so the motion update loads.
+
 ## v6.2 — 2026-07-31
 
 - Give every group one shared column layout so headers, values, and automatic

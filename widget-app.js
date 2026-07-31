@@ -240,6 +240,7 @@
   let sharedTableScrollLeft = 0;
   let syncingTableScroll = false;
   let draggedColumn = null;
+  const pendingDuplicateAnimations = new Map();
 
   function clampColumnWidth(width) {
     return Math.max(MIN_COLUMN_WIDTH, Math.min(MAX_COLUMN_WIDTH, Math.round(width)));
@@ -390,6 +391,99 @@
   window.addEventListener('resize', scheduleGroupSumAlignment);
   if (document.fonts && document.fonts.ready)
     document.fonts.ready.then(scheduleGroupSumAlignment);
+
+  function prefersReducedMotion() {
+    return typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  function captureGroupPositions() {
+    return new Map(
+      [...content.querySelectorAll('.group[data-animation-key]')].map(card => [
+        card.dataset.animationKey,
+        card.getBoundingClientRect(),
+      ])
+    );
+  }
+
+  function animateSortedGroups(firstPositions) {
+    if (!firstPositions || prefersReducedMotion()) return;
+    content.querySelectorAll('.group[data-animation-key]').forEach(card => {
+      const first = firstPositions.get(card.dataset.animationKey);
+      if (!first) return;
+      const last = card.getBoundingClientRect();
+      const deltaX = first.left - last.left;
+      const deltaY = first.top - last.top;
+      if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) return;
+      if (typeof card.animate !== 'function') return;
+      card.classList.add('group-sort-moving');
+      const distance = Math.hypot(deltaX, deltaY);
+      const animation = card.animate([
+        { transform: `translate(${deltaX}px, ${deltaY}px)` },
+        { transform: 'translate(0, 0)' },
+      ], {
+        duration: Math.max(240, Math.min(420, 220 + distance * .18)),
+        easing: 'cubic-bezier(.2,.8,.2,1)',
+        fill: 'both',
+      });
+      let finished = false;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        card.classList.remove('group-sort-moving');
+        animation.cancel();
+      };
+      animation.addEventListener('finish', finish, { once: true });
+      animation.addEventListener('cancel', finish, { once: true });
+    });
+  }
+
+  function rowForRecordId(id) {
+    const key = String(id);
+    return [...content.querySelectorAll('tr[data-record-id]')]
+      .find(row => row.dataset.recordId === key) || null;
+  }
+
+  function startPendingDuplicateAnimations() {
+    const now = Date.now();
+    pendingDuplicateAnimations.forEach((entry, id) => {
+      if (entry.expires <= now) {
+        clearTimeout(entry.timer);
+        pendingDuplicateAnimations.delete(id);
+        return;
+      }
+      const row = rowForRecordId(id);
+      if (!row) return;
+      if (prefersReducedMotion()) {
+        clearTimeout(entry.timer);
+        pendingDuplicateAnimations.delete(id);
+        row.classList.remove('row-enter');
+        return;
+      }
+      if (entry.row === row) return;
+      clearTimeout(entry.timer);
+      entry.row = row;
+      row.classList.add('row-enter');
+      entry.timer = setTimeout(() => {
+        if (pendingDuplicateAnimations.get(id) === entry)
+          pendingDuplicateAnimations.delete(id);
+        if (row.isConnected) row.classList.remove('row-enter');
+      }, 950);
+    });
+  }
+
+  function queueDuplicateAnimation(id) {
+    if (id == null || id === 'unknown') return;
+    const key = String(id);
+    const previous = pendingDuplicateAnimations.get(key);
+    if (previous) clearTimeout(previous.timer);
+    pendingDuplicateAnimations.set(key, {
+      expires: Date.now() + 5000,
+      row: null,
+      timer: null,
+    });
+    startPendingDuplicateAnimations();
+  }
 
   // Diagnostics: per-column type detection + first raw value shown with
   // JSON.stringify so invisible characters appear as \uXXXX escapes.
@@ -605,9 +699,11 @@
   });
 
   sortSelect.addEventListener('change', () => {
+    const firstPositions = captureGroupPositions();
     sortMode = sortSelect.value;
     grist.setOption('sortMode', sortMode);
     render();
+    animateSortedGroups(firstPositions);
   });
 
   document.getElementById('btn-expand').addEventListener('click', () => {
@@ -711,6 +807,7 @@
 
       const card = document.createElement('article');
       card.className = 'group' + (isCollapsed ? ' collapsed' : '');
+      card.dataset.animationKey = bodyId;
 
       const header = document.createElement('button');
       header.type = 'button';
@@ -763,6 +860,7 @@
       scroller.scrollLeft = sharedTableScrollLeft;
     });
     scheduleGroupSumAlignment();
+    startPendingDuplicateAnimations();
     refreshBoolSection();
   }
 
@@ -775,7 +873,11 @@
     const tbody = records.map(rec => {
       const idStr = String(rec.id);
       const sel   = selectedIds.has(idStr);
-      return `<tr${sel ? ' class="row-selected"' : ''}>`
+      const classes = [
+        sel ? 'row-selected' : '',
+        pendingDuplicateAnimations.has(idStr) ? 'row-enter' : '',
+      ].filter(Boolean).join(' ');
+      return `<tr data-record-id="${esc(idStr)}"${classes ? ` class="${classes}"` : ''}>`
       + `<td class="row-sel"><input type="checkbox" class="sel-cb sel-cb-row"`
       + ` data-id="${esc(idStr)}"${sel ? ' checked' : ''}`
       + ` aria-label="${esc(T.selAll)}"></td>`
@@ -1241,6 +1343,8 @@
     const createdId = created && created.id != null ? created.id : 'unknown';
     recordActionDiagnostic('Duplicate', 'ok',
       `source=${recordId} · created=${createdId}`);
+    queueDuplicateAnimation(createdId);
+    return createdId;
   }
 
   async function deleteRecordsByIds(idStrings) {

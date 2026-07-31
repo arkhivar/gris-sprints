@@ -24,6 +24,8 @@ Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacos
 - **Shared adjustable columns** — every group uses the same widths; drag a
   header edge to resize a column everywhere
 - **Column reordering** — drag headers left/right to change the order globally
+- **Purposeful motion** — duplicated rows enter with a brief highlight, and
+  sorted groups visibly move into their new positions
 - **Row count beside every group name**
 - **Null values** collected in an *(empty)* group, sorted last
 - **Cell formatting**: booleans ✓/✗ (several display styles), plain numbers (no thousand separators — `-1425`, not `-1,425`), ISO dates, arrays
@@ -134,6 +136,17 @@ the columns in that group away from the others.
   others, keeping headers and automatic sums aligned.
 - Widths and order are saved automatically. Open settings and use
   **Reset widths & order** to restore the original layout.
+
+## Motion and feedback
+
+- A row duplicated from this widget fades/slides into place and receives a
+  short accent highlight after Grist returns it through `onRecords`. The
+  returned record ID ensures unrelated additions do not animate.
+- Changing the toolbar's **Sort** mode uses a FLIP transition: each group card,
+  together with all of its records, visibly moves from its old position to its
+  new one.
+- Both effects automatically turn off when the operating system or browser
+  requests reduced motion.
 
 ## Date-aware grouping
 
