@@ -226,37 +226,6 @@
       background: var(--bg); border: 1px solid var(--border); color: var(--muted); flex-shrink: 0;
     }
 
-    /* Aggregate chips in group headers */
-    .agg-chips {
-      display: flex; gap: 4px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end;
-    }
-    .agg-chip {
-      font-family: var(--mono); font-size: 10px; font-weight: 500;
-      padding: 1px 7px; border-radius: 10px; white-space: nowrap;
-      background: rgba(37,99,235,.07); border: 1px solid rgba(37,99,235,.28);
-      color: var(--accent); font-variant-numeric: tabular-nums;
-    }
-
-    /* Aggregates section of the settings panel */
-    .agg-list {
-      display: flex; flex-direction: column; gap: 5px; margin-bottom: 7px;
-    }
-    .agg-row { display: flex; align-items: center; gap: 8px; }
-    .agg-row-label {
-      flex: 1; min-width: 0; font-size: 12px; font-weight: 500;
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text);
-    }
-    .agg-row-label .agg-fn-sym { font-family: var(--mono); color: var(--accent); margin-right: 5px; }
-    .agg-empty-note { font-size: 11px; color: var(--muted); font-style: italic; margin: 0; }
-    .agg-add-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .agg-add-row select {
-      font-family: var(--font); font-size: 12px; padding: 3px 7px;
-      border: 1px solid var(--border-strong); border-radius: var(--radius);
-      background: var(--surface); color: var(--text); cursor: pointer; outline: none;
-      max-width: 160px;
-    }
-    .agg-add-row select:focus-visible { border-color: var(--accent); box-shadow: var(--focus-ring); }
-
     .group-body {
       display: grid; grid-template-rows: 1fr;
       transition: grid-template-rows .22s cubic-bezier(.4,0,.2,1);
@@ -310,6 +279,21 @@
       letter-spacing: .03em; padding: 4px 10px; text-align: left;
       background: var(--group-stripe); border-bottom: 1px solid var(--border);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px;
+    }
+    .rec-table thead th.column-numeric {
+      overflow: visible; text-overflow: clip;
+    }
+    .column-name {
+      display: block; overflow: hidden; text-overflow: ellipsis;
+    }
+    .column-sum {
+      display: block; width: max-content; max-width: 100%;
+      margin-top: 3px; padding: 1px 7px;
+      overflow: hidden; text-overflow: ellipsis;
+      border: 1px solid rgba(37,99,235,.28); border-radius: 10px;
+      background: rgba(37,99,235,.07); color: var(--accent);
+      font-size: 10px; font-weight: 500; line-height: 1.35;
+      font-variant-numeric: tabular-nums;
     }
     .rec-table tbody tr           { transition: background .08s; }
     .rec-table tbody tr:hover td  { background: var(--hover-row); }
