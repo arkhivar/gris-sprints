@@ -8,10 +8,12 @@ Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacos
 
 ## Features
 
-- **Group by any column** — dropdown selector in the toolbar
+- **Automatic first grouping** — when no valid grouping is saved, the widget
+  picks the first single-value Grist Choice column; the toolbar still lets you
+  switch to any other column
 - **Date-aware grouping** — Date/DateTime columns (epoch seconds **or** ISO 8601 text) can be grouped **by day, month or year** (UTC-based), with chronological sorting (see below)
 - **Fold / unfold** each group by clicking its header; **expand all / collapse all** in one click
-- **Group sort**: alphabetical A→Z or Z→A, by record count ascending or descending
+- **Group sort**: Z→A by default, or A→Z / record count ascending or descending
 - **Row actions** — duplicate ⧉ and delete ✕ any record inline, always visible (two-step delete, requires **Full access**, see below)
 - **Large text editor** — enable writable Text columns in Settings, then click
   a cell to edit long, multi-line notes and emoji content without leaving the widget
@@ -51,7 +53,8 @@ Fork of [maximelacoste/grist-widget-grouped-view](https://github.com/maximelacos
 3. Select access level **Full access** — required for row actions, field
    editing, and cross-group moves. With a lower level the view still works but
    write actions fail.
-4. Pick a grouping column in the widget toolbar
+4. The widget initially groups by the first single-value **Choice** column it
+   finds. Use the toolbar to choose a different grouping whenever needed.
 
 ## Row actions (duplicate / delete)
 

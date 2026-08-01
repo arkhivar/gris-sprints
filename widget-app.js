@@ -605,6 +605,35 @@
   // grist.selectedTable.create / update / destroy.
   grist.ready({ requiredAccess: 'full' });
 
+  function isValidGroupByOption(value) {
+    if (!value) return false;
+    const { col, granularity } = parseGroupBy(value);
+    if (!allColumns.includes(col)) return false;
+    return !granularity
+      || (knownDateCols.has(col) && DATE_GRANULARITIES.includes(granularity));
+  }
+
+  function applyStartupGroupDefault() {
+    // Options, records, and table metadata are delivered independently by Grist.
+    // Wait for all three so a saved grouping always wins and ChoiceList is never
+    // mistaken for a single-value Choice column.
+    if (!optionsLoaded || !metadataLoaded || allColumns.length === 0) return false;
+    if (isValidGroupByOption(groupBy)) return false;
+
+    const choiceColumn = allColumns.find(col =>
+      columnBaseType(columnTypes[col] || writableColumnTypes[col]) === 'Choice');
+    if (!choiceColumn) return false;
+
+    groupBy = choiceColumn;
+    collapsed.clear();
+    rebuildColumnSelect();
+    groupSelect.value = choiceColumn;
+    grist.setOption('groupBy', choiceColumn);
+    recordActionDiagnostic('Auto grouping', 'ok',
+      `column=${choiceColumn} · type=Choice`);
+    return true;
+  }
+
   grist.onOptions((opts, settings) => {
     grantedAccessLevel = settings && settings.accessLevel
       ? settings.accessLevel
@@ -661,7 +690,9 @@
         }
       }
     }
+    optionsLoaded = true;
     getWritableColumnIds().then(() => {
+      applyStartupGroupDefault();
       applyEditableColumnDefaults();
       refreshEditableColumnsSection();
       refreshDiag();
@@ -697,6 +728,7 @@
     // Always rebuild: already-known columns stay offered
     // even when the current filter returns no records.
     rebuildColumnSelect();
+    applyStartupGroupDefault();
     if (settingsPanel.classList.contains('open')) refreshEditableColumnsSection();
     if (settingsPanel.classList.contains('open')) refreshDiag();
     render();
@@ -1368,6 +1400,7 @@
       writableColumnIds = [...result];
       writableColumnTypes = typeMap;
       columnTypes = allTypeMap;
+      metadataLoaded = true;
       recordActionDiagnostic('Metadata', 'ok',
         `table=${tableId} · writable=${writableColumnIds.join(', ')}`
         + ` · text=${writableColumnIds.filter(col => isTextColumnType(typeMap[col])).join(', ')}`
