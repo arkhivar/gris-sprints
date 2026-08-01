@@ -2,6 +2,16 @@
 
 All notable changes to the grist-sprints grouped-view widget.
 
+## v6.71 — 2026-08-01
+
+- Adopt the three-digit `6.7x` release sequence so small iterations can advance
+  through `6.71`, `6.72`, and so on without racing toward v7.
+- Expand `ARCHITECTURE.md` with the concrete Grist APIs, persisted option keys,
+  record-write lifecycle, metadata tables, and state ownership boundaries.
+- Extend `ROADMAP.md` with long-horizon school products, clearly separating
+  Grist + GitHub Pages projects from ideas that require external services.
+- Bump the live widget badge and every static asset cache key to v6.71.
+
 ## v6.7 — 2026-08-01
 
 - Automatically group by the first visible single-value Grist `Choice` column
@@ -11,8 +21,6 @@ All notable changes to the grist-sprints grouped-view widget.
   applying the fallback, preserving every valid grouping the user selected.
 - Make alphabetical Z→A the default group sort while preserving any explicitly
   saved sort order, and bump static asset cache keys.
-- Document the GitHub Pages/Grist architecture, widget-option persistence,
-  startup lifecycle, access boundaries, and when an external backend is needed.
 
 ## v6.6 — 2026-07-31
 

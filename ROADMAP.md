@@ -91,3 +91,78 @@ value.
 - Numeric and Boolean groups are technically writable but should be opt-in
   because moving a card would silently change business data.
 - Formula columns remain permanently read-only.
+
+## Long-horizon school products
+
+These are motivating directions, not near-term commitments. Every idea carries
+an explicit stack boundary:
+
+- **GRIST-ONLY** means the complete useful version can be built with Grist as
+  the data backend and a static HTML/CSS/JavaScript widget on GitHub Pages.
+- **HYBRID** means the widget can provide the interface, but a secure external
+  service is required for secrets, background work, AI, large-media processing,
+  or an experience outside authenticated Grist pages.
+
+### Student 360° command center — GRIST-ONLY
+
+A linked student profile combining attendance heatmaps, sprint performance,
+teacher-note history, homework completion, skill trends, intervention flags,
+and quick record actions. All source data, formulas, relationships, rules, and
+saved view configuration can live in Grist. Printable progress reports can be
+rendered in the browser. Automatic AI-written summaries or outbound delivery
+would be an optional HYBRID extension, not a requirement for the core product.
+
+### Teacher operations and intervention cockpit — GRIST-ONLY
+
+A daily queue that finds repeated absences, declining performance, unfinished
+follow-ups, students without recent feedback, and classes needing preparation.
+Teachers could acknowledge alerts, create tasks, add notes, and move cases
+through a workflow without leaving the widget. The first version can use Grist
+formulas and tables for every rule; scheduled messages to external channels
+would be a separate HYBRID extension.
+
+### Curriculum and sprint planning studio — GRIST-ONLY
+
+A visual planner for units, lessons, objectives, materials, homework, and
+assessments. It could support reusable templates, drag-and-drop sequencing,
+coverage warnings, teacher workload views, and printable lesson packs. Manual
+planning and deterministic Grist formulas need no external service. A genuine
+constraint-solving timetable optimizer would move the advanced edition into
+HYBRID territory.
+
+### Student portal and portfolio — TWO POSSIBLE BOUNDARIES
+
+- **GRIST-ONLY:** a student-facing page inside an authenticated Grist document,
+  using Grist permissions and linked views to show assignments, feedback,
+  progress, resources, and an approved portfolio.
+- **HYBRID:** a separately branded public/mobile portal outside Grist, with its
+  own authentication, password recovery, notifications, and document-scoped
+  API access. The external service would own authentication and communicate
+  with Grist through a narrowly authorized integration.
+
+### IELTS speaking lab with audio waveforms — HYBRID
+
+The widget could record or play attempts, render waveforms, show timestamped
+teacher annotations, compare versions, display rubrics, and link results back
+to each student and prompt. Reliable uploads, large audio storage, transcription,
+pronunciation scoring, background processing, and privacy controls require an
+external media service. Grist should store assignment metadata, URLs, scores,
+transcripts, and teacher decisions rather than secret credentials or raw
+processing jobs.
+
+### AI lesson and feedback studio — HYBRID
+
+A teacher selects a class or sprint and receives editable lesson plans,
+differentiated exercises, homework, rubrics, feedback drafts, or parent-facing
+summaries based on approved Grist data. The widget remains the review and edit
+surface; a server-side endpoint holds the AI credential, performs the request,
+enforces school policy, and writes only teacher-approved output back to Grist.
+No paid API key may be embedded in public GitHub Pages JavaScript.
+
+### Notifications and school integrations — HYBRID
+
+Email, messenger notifications, calendar synchronization, payments, CRM/LMS
+connections, scheduled jobs, and workflows that must run while no widget is
+open require Grist Automations/webhooks or an external worker. The long-term
+goal is to keep Grist as the source of truth while each integration receives
+only the minimum data and authorization it needs.
