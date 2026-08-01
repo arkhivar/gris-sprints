@@ -75,7 +75,7 @@
       boolFalse: ['✗ false', 'No',    'False', 'false', '0'],
       boolLabels: ['✓ / ✗', 'Yes / No', 'True / False', '● badge', '1 / 0'],
   };
-  const WIDGET_VERSION = '6.6';
+  const WIDGET_VERSION = '6.7';
   const LOCALE = 'en-US';
 
   // ── Dates: Grist sends Date/DateTime as epoch seconds (UTC) ──
@@ -111,7 +111,9 @@
   let allColumns = [];
   let knownDateCols = new Set();   // date-like columns already observed (persists across empty fetches)
   let groupBy    = '';
-  let sortMode   = 'alpha-asc';
+  let sortMode   = 'alpha-desc';
+  let optionsLoaded = false;
+  let metadataLoaded = false;
   let collapsed  = new Set();
   let boolFmtKey = 'check';
   let maxGroupH  = 200;

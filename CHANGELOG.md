@@ -2,6 +2,16 @@
 
 All notable changes to the grist-sprints grouped-view widget.
 
+## v6.7 — 2026-08-01
+
+- Automatically group by the first visible single-value Grist `Choice` column
+  when there is no valid saved grouping, and persist that selection so the
+  widget opens with data instead of an empty prompt.
+- Wait for saved options, records, and real Grist column metadata before
+  applying the fallback, preserving every valid grouping the user selected.
+- Make alphabetical Z→A the default group sort while preserving any explicitly
+  saved sort order, and bump static asset cache keys.
+
 ## v6.6 — 2026-07-31
 
 - Fix the visible grip extending into a neighboring table cell's pointer area
