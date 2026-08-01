@@ -277,6 +277,7 @@ the same repo, so no extra hosting steps are needed:
 | `widget-core.js` | English UI strings, constants, state, date helpers |
 | `widget-app.js` | Settings panel, automatic sums, diagnostics, Grist wiring, grouping, rendering, row actions |
 | `widget-actions.js` | Unified grip selection, cross-group dragging, action bar, and bulk actions |
+| `ARCHITECTURE.md` | GitHub Pages/Grist responsibilities, persistence lifecycle, data access, and backend boundaries |
 | `ROADMAP.md` | Deferred drag semantics for dates, Choice Lists, references, and other types |
 
 ## Credits

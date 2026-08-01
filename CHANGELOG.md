@@ -11,6 +11,8 @@ All notable changes to the grist-sprints grouped-view widget.
   applying the fallback, preserving every valid grouping the user selected.
 - Make alphabetical Z→A the default group sort while preserving any explicitly
   saved sort order, and bump static asset cache keys.
+- Document the GitHub Pages/Grist architecture, widget-option persistence,
+  startup lifecycle, access boundaries, and when an external backend is needed.
 
 ## v6.6 — 2026-07-31
 
