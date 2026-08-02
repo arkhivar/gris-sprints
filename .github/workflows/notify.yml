@@ -18,7 +18,7 @@ on:
   release:
     types: [published]
   issues:
-  types: [opened, closed, reopened]
+    types: [opened, closed, reopened]
 
 jobs:
   dispatch:
